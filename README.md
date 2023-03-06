@@ -91,8 +91,14 @@ Response Format:
 }
 ```
 
+### Interface
+A CLI tool that collects requirements from the developer in a conversational 
+manner and then generates a project from those requirements. The tool will call
+the Query API to help the developer choose the correct technologies and APIs, 
+and call the rest of the APIs to generate the project.
+
 ### Requirements API
-A library that takes in a conversation with the developer about requirements and 
+A library that processes a conversation with the developer about requirements and 
 generates a YAML file that can be used to generate a project.
 
 Response Format:
@@ -189,6 +195,9 @@ run tests and linters on the generated code, fixing any bugs that are found with
 AI.
 
 ## Task List
+- [ ] Serialization
+  - [ ] Implement YAML serialization
+  - [ ] Implement JSON serialization
 - [ ] Query API
   - [ ] Implement Data Gathering
     - [ ] Implement Colly for scraping
@@ -199,7 +208,24 @@ AI.
     - [ ] Implement Codex for extracting relevant information from collected data
     - [ ] Implement Codex for serializing data into a standardized format
     - [ ] Implement verification of AI output
+- [ ] Interface
+  - [ ] Implement CLI
+    - [ ] Implement [Bubbletea](https://github.com/charmbracelet/bubbletea) for the TUI
+    - [ ] Implement [Cobra](https://github.com/spf13/cobra) for command management
+  - [ ] Implement conversations
+    - [ ] Implement and wrap the [gpt-3.5-turbo](https://openai.com/blog/introducing-chatgpt-and-whisper-apis) language model
 - [ ] Requirements API
+  - [ ] Implement Codex for processing requirements from conversations
 - [ ] Outline API
+  - [ ] Implement Codex for generating project outline
+    - [ ] Implement Codex for revising project outline
+  - [ ] Implement file and directory generation
 - [ ] Dependency API
+  - [ ] Implement Query API for resolving dependencies and their documentation
+  - [ ] Implement generation of dependency names and documentation
+- [ ] Code API
+  - [ ] Implement Codex for generating test stubs, code, and comments
+    - [ ] Implement context-aware code generation and comments that align with the requirements and dependencies
+  - [ ] Implement refactoring of code and incorporation of code standards
 - [ ] Debugging API
+  - [ ] TODO: Figure out how to implement this.
