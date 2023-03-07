@@ -59,6 +59,7 @@ changes and re-run the tests.
     - [ ] Implement [Cobra](https://github.com/spf13/cobra) for command management
   - [ ] Implement conversations
     - [ ] Implement and wrap the [gpt-3.5-turbo](https://openai.com/blog/introducing-chatgpt-and-whisper-apis) language model
+  - [ ] Implement configuration with [Viper](https://github.com/spf13/viper)
 - [ ] Requirements API
   - [ ] Implement Codex for processing requirements from conversations
 - [ ] Outline API
