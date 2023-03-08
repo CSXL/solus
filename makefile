@@ -16,5 +16,5 @@ install:
 
 clean:
 	@echo "Cleaning..."
-	@rm -f solus
+	@rm -f solus.out
 	@echo "Done."
