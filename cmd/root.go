@@ -3,6 +3,7 @@ package cmd
 import (
 	"os"
 
+	"github.com/CSXL/solus/tui"
 	"github.com/spf13/cobra"
 )
 
@@ -10,9 +11,9 @@ var rootCmd = &cobra.Command{
 	Use:   "solus",
 	Short: "An AI-assisted project generator.",
 	Long:  `Solus is an AI-assisted project generator by CSX Labs.`,
-	// Uncomment the following line if your bare application
-	// has an action associated with it:
-	// Run: func(cmd *cobra.Command, args []string) { },
+	Run: func(cmd *cobra.Command, args []string) {
+		tui.Run()
+	},
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
