@@ -6,7 +6,7 @@ run:
 
 build:
 	@echo "Building..."
-	@go build -o solus
+	@go build -o solus.out
 	@echo "Done."
 
 install:
