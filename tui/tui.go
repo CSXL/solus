@@ -15,9 +15,16 @@ type keyMap struct {
 	Help  key.Binding
 }
 
+type colorMap struct {
+	primary   lipgloss.Color
+	secondary lipgloss.Color
+	title     lipgloss.Color
+}
+
 type styleMap struct {
 	primary   lipgloss.Style
 	secondary lipgloss.Style
+	title     lipgloss.Style
 }
 
 var (
@@ -29,9 +36,23 @@ var (
 		Quit:  key.NewBinding(key.WithKeys("ctrl+c", "esc"), key.WithHelp("ctrl+c", "Quit")),
 		Help:  key.NewBinding(key.WithKeys("h", "?"), key.WithHelp("h", "Show help")),
 	}
+	colors = colorMap{
+		primary:   lipgloss.Color("#f8f8f2"),
+		secondary: lipgloss.Color("#4E0069"),
+		title:     lipgloss.Color("#4E0069"),
+	}
 	styles = styleMap{
-		primary:   lipgloss.NewStyle().Foreground(lipgloss.Color("#f8f8f2")),
-		secondary: lipgloss.NewStyle().Foreground(lipgloss.Color("#4E0069")),
+		primary: lipgloss.NewStyle().
+			Foreground(colors.primary),
+		secondary: lipgloss.NewStyle().
+			Foreground(colors.secondary),
+		title: lipgloss.NewStyle().
+			Foreground(colors.title).
+			Bold(true).
+			Border(lipgloss.NormalBorder()).
+			Width(20).
+			Align(lipgloss.Center).
+			BorderForeground(colors.secondary),
 	}
 )
 
@@ -69,10 +90,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m model) View() string {
 	var s string
-	s += styles.primary.Render("Hello, World!")
-	s += "\n"
-	s += styles.secondary.Render("Hola, tierra!")
-	s += "\n"
+	s += styles.title.Render("Solus")
 	return s
 }
 
