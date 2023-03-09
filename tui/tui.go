@@ -8,19 +8,22 @@ import (
 	"github.com/CSXL/solus/api"
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/textinput"
+	"github.com/charmbracelet/bubbles/viewport"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/glamour"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/joho/godotenv"
 )
 
 type keyMap struct {
-	Up    key.Binding
-	Down  key.Binding
-	Left  key.Binding
-	Right key.Binding
-	Enter key.Binding
-	Quit  key.Binding
-	Help  key.Binding
+	Up          key.Binding
+	Down        key.Binding
+	Left        key.Binding
+	Right       key.Binding
+	ToggleFocus key.Binding
+	Enter       key.Binding
+	Quit        key.Binding
+	Help        key.Binding
 }
 
 type colorMap struct {
@@ -38,13 +41,14 @@ type styleMap struct {
 
 var (
 	keybindings = keyMap{
-		Up:    key.NewBinding(key.WithKeys("up"), key.WithHelp("up", "Move up")),
-		Down:  key.NewBinding(key.WithKeys("down"), key.WithHelp("down", "Move down")),
-		Left:  key.NewBinding(key.WithKeys("left"), key.WithHelp("left", "Move left")),
-		Right: key.NewBinding(key.WithKeys("right"), key.WithHelp("right", "Move right")),
-		Enter: key.NewBinding(key.WithKeys("enter"), key.WithHelp("enter", "Send message")),
-		Quit:  key.NewBinding(key.WithKeys("ctrl+c", "esc"), key.WithHelp("ctrl+c", "Quit")),
-		Help:  key.NewBinding(key.WithKeys("h", "?"), key.WithHelp("h", "Show help")),
+		Up:          key.NewBinding(key.WithKeys("up"), key.WithHelp("up", "Move up")),
+		Down:        key.NewBinding(key.WithKeys("down"), key.WithHelp("down", "Move down")),
+		Left:        key.NewBinding(key.WithKeys("left"), key.WithHelp("left", "Move left")),
+		Right:       key.NewBinding(key.WithKeys("right"), key.WithHelp("right", "Move right")),
+		ToggleFocus: key.NewBinding(key.WithKeys("tab"), key.WithHelp("tab", "Toggle focus")),
+		Enter:       key.NewBinding(key.WithKeys("enter"), key.WithHelp("enter", "Send message")),
+		Quit:        key.NewBinding(key.WithKeys("ctrl+c", "esc"), key.WithHelp("ctrl+c", "Quit")),
+		Help:        key.NewBinding(key.WithKeys("h", "?"), key.WithHelp("h", "Show help")),
 	}
 	colors = colorMap{
 		primary:   lipgloss.Color("#f8f8f2"),
@@ -84,6 +88,7 @@ type model struct {
 	ChatClient *api.ChatClient
 	screen     screen
 	input      textinput.Model
+	viewport   viewport.Model
 	err        error
 }
 
@@ -96,9 +101,8 @@ func NewModel(OPENAI_API_KEY string) model {
 	ti.Width = 80
 	return model{
 		ChatClient: api.NewChatClient(OPENAI_API_KEY),
-		screen:     screen{},
 		input:      ti,
-		err:        nil,
+		viewport:   viewport.New(80, 20),
 	}
 }
 
@@ -115,6 +119,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch {
 		case key.Matches(msg, keybindings.Quit):
 			return m, tea.Quit
+		case key.Matches(msg, keybindings.ToggleFocus):
+			if m.input.Focused() {
+				m.input.Blur()
+			} else {
+				m.input.Focus()
+			}
 		case key.Matches(msg, keybindings.Help):
 			if !m.input.Focused() {
 				return m, tea.Println("This is a temporary help message that will be replaced by a help view.")
@@ -127,11 +137,14 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 	}
 
+	var cmds []tea.Cmd
 	var cmd tea.Cmd
 	m.input, cmd = m.input.Update(msg)
-	return m, cmd
+	cmds = append(cmds, cmd)
+	m.viewport, cmd = m.viewport.Update(msg)
+	cmds = append(cmds, cmd)
+	return m, tea.Batch(cmds...)
 }
-
 func (m model) View() string {
 	var s string
 	s += styles.title.Render("Solus")
@@ -142,12 +155,20 @@ func (m model) View() string {
 func (m model) ChatView() string {
 	var s string
 	for _, msg := range m.ChatClient.GetMessages() {
-		formatted_message := fmt.Sprintf("[%s]: %s", strings.ToTitle(msg.Role), msg.Content)
+		formatted_role := strings.ToUpper(msg.Role)
+		markdown_renderer, _ := glamour.NewTermRenderer(glamour.WithAutoStyle())
+		markdown_content, _ := markdown_renderer.Render(msg.Content)
+		formatted_message := fmt.Sprintf("[%s]: %s", formatted_role, markdown_content)
 		s += styles.secondary.Render(formatted_message)
 		s += "\n"
 	}
-	s += styles.secondary.Render("[User]: ")
+	s += styles.secondary.Render("[USER]: ")
 	s += styles.primary.Render(m.input.View())
+	if !m.input.Focused() {
+		vp := viewport.New(80, 20)
+		vp.SetContent(s)
+		return vp.View()
+	}
 	return s
 }
 
@@ -164,6 +185,6 @@ func Run() (tea.Model, error) {
 	if err != nil {
 		return nil, err
 	}
-	p := tea.NewProgram(m)
+	p := tea.NewProgram(m, tea.WithAltScreen())
 	return p.Run()
 }
