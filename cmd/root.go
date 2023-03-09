@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/CSXL/solus/tui"
@@ -12,7 +13,10 @@ var rootCmd = &cobra.Command{
 	Short: "An AI-assisted project generator.",
 	Long:  `Solus is an AI-assisted project generator by CSX Labs.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		tui.Run()
+		_, err := tui.Run()
+		if err != nil {
+			fmt.Println(err)
+		}
 	},
 }
 
@@ -21,6 +25,7 @@ var rootCmd = &cobra.Command{
 func Execute() {
 	err := rootCmd.Execute()
 	if err != nil {
+		fmt.Println(err)
 		os.Exit(1)
 	}
 }
