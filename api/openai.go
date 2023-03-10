@@ -48,6 +48,15 @@ func (c *ChatClient) LoadMessages(filename string) error {
 	return nil
 }
 
+func (c *ChatClient) SaveMessages(filename string) error {
+	messages, _ := json.Marshal(c.GetMessages())
+	err := os.WriteFile(filename, messages, 0644)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func (c *ChatClient) SendMessage(content string, role string) error {
 	c.messages = append(c.messages, Message{content, role})
 	messages, err := c.client.CreateChatCompletion(c.messages)

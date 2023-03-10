@@ -1,7 +1,6 @@
 package tui
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
@@ -134,11 +133,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.input.SetValue("")
 			}
 		case key.Matches(msg, keybindings.Save):
-			messages, _ := json.Marshal(m.ChatClient.GetMessages())
-			err := os.WriteFile("messages.json", messages, 0644)
-			if err != nil {
-				return m, tea.Println(err.Error())
-			}
+			m.ChatClient.SaveMessages("messages.json")
 		case key.Matches(msg, keybindings.Down):
 			m.viewport.YOffset++
 			if m.viewport.ScrollPercent() >= 100 {
