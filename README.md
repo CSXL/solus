@@ -54,9 +54,9 @@ changes and re-run the tests.
     - [ ] Implement Codex for serializing data into a standardized format
     - [ ] Implement verification of AI output
 - [ ] Interface
-  - [ ] Implement CLI
-    - [ ] Implement [Bubbletea](https://github.com/charmbracelet/bubbletea) for the TUI
-    - [ ] Implement [Cobra](https://github.com/spf13/cobra) for command management
+  - [x] Implement CLI
+    - [x] Implement [Bubbletea](https://github.com/charmbracelet/bubbletea) for the TUI
+    - [x] Implement [Cobra](https://github.com/spf13/cobra) for command management
   - [x] Implement conversations
     - [x] Implement and wrap the [gpt-3.5-turbo](https://openai.com/blog/introducing-chatgpt-and-whisper-apis) language model
   - [ ] Implement configuration with [Viper](https://github.com/spf13/viper)

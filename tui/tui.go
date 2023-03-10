@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/CSXL/solus/api"
+	"github.com/CSXL/solus/config"
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/textinput"
 	"github.com/charmbracelet/bubbles/viewport"
@@ -82,25 +83,34 @@ type screen struct {
 	height int
 }
 
+type TUIConfig struct {
+	SavedMessagesFile string
+	DiscoveryMessage  string
+	APIKey            string // In environment variable OPENAI_API_KEY
+	Debug             bool
+}
+
 type model struct {
 	ChatClient *api.ChatClient
 	screen     screen
 	input      textinput.Model
 	viewport   viewport.Model
+	tui_config TUIConfig
 	err        error
 }
 
-func NewModel(OPENAI_API_KEY string) model {
+func NewModel(tui_config TUIConfig) model {
 	ti := textinput.New()
 	ti.Prompt = ""
 	ti.Placeholder = "Enter your message here..."
 	ti.Focus()
-	ti.CharLimit = 156
+	ti.CharLimit = 256
 	ti.Width = 80
 	return model{
-		ChatClient: api.NewChatClient(OPENAI_API_KEY),
+		ChatClient: api.NewChatClient(tui_config.APIKey),
 		input:      ti,
 		viewport:   viewport.New(80, 20),
+		tui_config: tui_config,
 	}
 }
 
@@ -133,7 +143,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.input.SetValue("")
 			}
 		case key.Matches(msg, keybindings.Save):
-			m.ChatClient.SaveMessages("messages.json")
+			m.ChatClient.SaveMessages(m.tui_config.SavedMessagesFile)
 		case key.Matches(msg, keybindings.Down):
 			m.viewport.YOffset++
 			if m.viewport.ScrollPercent() >= 100 {
@@ -190,14 +200,21 @@ func Run() (tea.Model, error) {
 		return nil, err
 	}
 	openai_api_key := os.Getenv("OPENAI_API_KEY")
-	m := NewModel(openai_api_key)
-	debug := os.Getenv("DEBUG")
-	if strings.ToUpper(debug) == "TRUE" {
-		m.ChatClient.LoadMessages("messages.json")
+	tui_config := TUIConfig{}
+	tui_config.APIKey = openai_api_key
+	config_reader := config.New()
+	err = config_reader.Read("tui_config", ".")
+	if err != nil {
+		return nil, err
+	}
+	tui_config.SavedMessagesFile = config_reader.Get("saved_messages_file").(string)
+	tui_config.DiscoveryMessage = config_reader.Get("discovery_message").(string)
+	tui_config.Debug = config_reader.Get("debug").(bool)
+	m := NewModel(tui_config)
+	if tui_config.Debug {
+		m.ChatClient.LoadMessages(tui_config.SavedMessagesFile)
 	} else {
-		// TODO: Put discovery message into YAML config
-		DISCOVERY_MESSAGE := "You are Solus, a helpful AI coding assistant by CSX Labs (Computer Science Exploration Laboratories). Start by greeting the user:"
-		err = m.ChatClient.SendSystemMessage(DISCOVERY_MESSAGE)
+		err = m.ChatClient.SendSystemMessage(tui_config.DiscoveryMessage)
 		if err != nil {
 			return nil, err
 		}
