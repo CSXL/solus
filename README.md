@@ -40,8 +40,16 @@ requests to Solus to change the generated code, and Solus will make the
 changes and re-run the tests.
 
 ## Task List
+This task list is for the Minimum Viable Product (MVP) of Solus. The MVP will 
+meet the bare minimum of the requirements listed above and in the specification.
+The tasks are being completed according to the [Tracer Bullet Philosophy](https://wiki.c2.com/?TracerBullets)
+presented in *[The Pragmatic Programmer](https://dl.acm.org/doi/10.5555/320326)*.
+The idea is that we will try to slice through the different parts of the project
+to provide a simple set of presentable features that can we can continue to 
+build upon.
+
 - [ ] Serialization
-  - [ ] Implement YAML serialization
+  - [x] Implement YAML serialization
   - [ ] Implement JSON serialization
 - [ ] Query API
   - [ ] Implement Data Gathering
@@ -53,13 +61,13 @@ changes and re-run the tests.
     - [ ] Implement Codex for extracting relevant information from collected data
     - [ ] Implement Codex for serializing data into a standardized format
     - [ ] Implement verification of AI output
-- [ ] Interface
+- [x] Interface
   - [x] Implement CLI
     - [x] Implement [Bubbletea](https://github.com/charmbracelet/bubbletea) for the TUI
     - [x] Implement [Cobra](https://github.com/spf13/cobra) for command management
   - [x] Implement conversations
     - [x] Implement and wrap the [gpt-3.5-turbo](https://openai.com/blog/introducing-chatgpt-and-whisper-apis) language model
-  - [ ] Implement configuration with [Viper](https://github.com/spf13/viper)
+  - [x] Implement configuration with [Viper](https://github.com/spf13/viper)
 - [ ] Requirements API
   - [ ] Implement Codex for processing requirements from conversations
 - [ ] Outline API
