@@ -1,6 +1,7 @@
 package tui
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
@@ -16,13 +17,12 @@ import (
 )
 
 type keyMap struct {
-	Up          key.Binding
-	Down        key.Binding
-	Left        key.Binding
-	Right       key.Binding
 	ToggleFocus key.Binding
+	Save        key.Binding
 	Enter       key.Binding
 	Quit        key.Binding
+	Down        key.Binding
+	Up          key.Binding
 	Help        key.Binding
 }
 
@@ -41,14 +41,13 @@ type styleMap struct {
 
 var (
 	keybindings = keyMap{
-		Up:          key.NewBinding(key.WithKeys("up"), key.WithHelp("up", "Move up")),
-		Down:        key.NewBinding(key.WithKeys("down"), key.WithHelp("down", "Move down")),
-		Left:        key.NewBinding(key.WithKeys("left"), key.WithHelp("left", "Move left")),
-		Right:       key.NewBinding(key.WithKeys("right"), key.WithHelp("right", "Move right")),
 		ToggleFocus: key.NewBinding(key.WithKeys("tab"), key.WithHelp("tab", "Toggle focus")),
+		Save:        key.NewBinding(key.WithKeys("ctrl+s"), key.WithHelp("ctrl+s", "Save")),
 		Enter:       key.NewBinding(key.WithKeys("enter"), key.WithHelp("enter", "Send message")),
 		Quit:        key.NewBinding(key.WithKeys("ctrl+c", "esc"), key.WithHelp("ctrl+c", "Quit")),
 		Help:        key.NewBinding(key.WithKeys("h", "?"), key.WithHelp("h", "Show help")),
+		Up:          key.NewBinding(key.WithKeys("j", "up"), key.WithHelp("j/↑", "Scroll up")),
+		Down:        key.NewBinding(key.WithKeys("k", "down"), key.WithHelp("k/↓", "Scroll down")),
 	}
 	colors = colorMap{
 		primary:   lipgloss.Color("#f8f8f2"),
@@ -134,15 +133,34 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.ChatClient.SendUserMessage(m.input.Value())
 				m.input.SetValue("")
 			}
+		case key.Matches(msg, keybindings.Save):
+			messages, _ := json.Marshal(m.ChatClient.GetMessages())
+			err := os.WriteFile("messages.json", messages, 0644)
+			if err != nil {
+				return m, tea.Println(err.Error())
+			}
+		case key.Matches(msg, keybindings.Down):
+			m.viewport.YOffset++
+			if m.viewport.ScrollPercent() >= 100 {
+				m.viewport.GotoBottom()
+			}
+		case key.Matches(msg, keybindings.Up):
+			m.viewport.YOffset--
+			if m.viewport.ScrollPercent() <= 0 {
+				m.viewport.GotoTop()
+			}
 		}
 	}
 
 	var cmds []tea.Cmd
 	var cmd tea.Cmd
-	m.input, cmd = m.input.Update(msg)
-	cmds = append(cmds, cmd)
-	m.viewport, cmd = m.viewport.Update(msg)
-	cmds = append(cmds, cmd)
+	if m.input.Focused() {
+		m.input, cmd = m.input.Update(msg)
+		cmds = append(cmds, cmd)
+	} else {
+		m.viewport, cmd = m.viewport.Update(msg)
+		cmds = append(cmds, cmd)
+	}
 	return m, tea.Batch(cmds...)
 }
 func (m model) View() string {
@@ -165,9 +183,8 @@ func (m model) ChatView() string {
 	s += styles.secondary.Render("[USER]: ")
 	s += styles.primary.Render(m.input.View())
 	if !m.input.Focused() {
-		vp := viewport.New(80, 20)
-		vp.SetContent(s)
-		return vp.View()
+		m.viewport.SetContent(s)
+		return m.viewport.View()
 	}
 	return s
 }
@@ -179,12 +196,17 @@ func Run() (tea.Model, error) {
 	}
 	openai_api_key := os.Getenv("OPENAI_API_KEY")
 	m := NewModel(openai_api_key)
-	// TODO: Put discovery message into YAML config
-	DISCOVERY_MESSAGE := "You are Solus, a helpful AI coding assistant by CSX Labs (Computer Science Exploration Laboratories). Start by greeting the user:"
-	err = m.ChatClient.SendSystemMessage(DISCOVERY_MESSAGE)
-	if err != nil {
-		return nil, err
+	debug := os.Getenv("DEBUG")
+	if strings.ToUpper(debug) == "TRUE" {
+		m.ChatClient.LoadMessages("messages.json")
+	} else {
+		// TODO: Put discovery message into YAML config
+		DISCOVERY_MESSAGE := "You are Solus, a helpful AI coding assistant by CSX Labs (Computer Science Exploration Laboratories). Start by greeting the user:"
+		err = m.ChatClient.SendSystemMessage(DISCOVERY_MESSAGE)
+		if err != nil {
+			return nil, err
+		}
 	}
-	p := tea.NewProgram(m, tea.WithAltScreen())
+	p := tea.NewProgram(m, tea.WithAltScreen(), tea.WithMouseCellMotion())
 	return p.Run()
 }

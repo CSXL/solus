@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"encoding/json"
 	"os"
 
 	openai "github.com/sashabaranov/go-openai"
@@ -31,6 +32,20 @@ func (c *ChatClient) SetMessages(messages []Message) {
 
 func (c *ChatClient) ClearMessages() {
 	c.messages = []Message{}
+}
+
+func (c *ChatClient) LoadMessages(filename string) error {
+	messages := []Message{}
+	file, err := os.ReadFile(filename)
+	if err != nil {
+		return err
+	}
+	err = json.Unmarshal(file, &messages)
+	if err != nil {
+		return err
+	}
+	c.messages = messages
+	return nil
 }
 
 func (c *ChatClient) SendMessage(content string, role string) error {
