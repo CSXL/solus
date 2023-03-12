@@ -3,40 +3,50 @@ package search_clients
 import (
 	"context"
 
-	"google.golang.org/api/cloudsearch/v1"
+	"google.golang.org/api/customsearch/v1"
 	"google.golang.org/api/option"
 )
 
 type GoogleSearchClient struct {
-	API_KEY string
-	ctx     context.Context
-	client  *cloudsearch.Service
+	api_key                string
+	programmable_search_id string
+	ctx                    context.Context
+	client                 *customsearch.Service
 }
 
-func NewGoogleSearchClient(ctx context.Context, api_key string) (*GoogleSearchClient, error) {
-	client, err := cloudsearch.NewService(ctx, option.WithAPIKey(api_key))
+func NewGoogleSearchClient(ctx context.Context, api_key string, programmable_search_id string) (*GoogleSearchClient, error) {
+	client, err := customsearch.NewService(ctx, option.WithAPIKey(api_key))
 	if err != nil {
 		return nil, err
 	}
 	return &GoogleSearchClient{
-		API_KEY: api_key,
-		client:  client,
-		ctx:     ctx,
+		api_key:                api_key,
+		programmable_search_id: programmable_search_id,
+		client:                 client,
+		ctx:                    ctx,
 	}, nil
 }
 
-func (g *GoogleSearchClient) buildRequest(query string) *cloudsearch.SearchRequest {
-	return &cloudsearch.SearchRequest{
-		Query: query,
-	}
+type SearchResult struct {
+	Title    string
+	Url      string
+	Summary  string
+	MIMEType string
 }
 
-func (g *GoogleSearchClient) Search(query string) ([]*cloudsearch.SearchResult, error) {
-	request := g.buildRequest(query)
-	search_request := g.client.Query.Search(request)
-	search_response, err := search_request.Do()
+func (gsc *GoogleSearchClient) Search(query string) ([]*SearchResult, error) {
+	response, err := gsc.client.Cse.List().Q(query).Cx(gsc.programmable_search_id).Do()
 	if err != nil {
 		return nil, err
 	}
-	return search_response.Results, nil
+	results := make([]*SearchResult, len(response.Items))
+	for i, item := range response.Items {
+		results[i] = &SearchResult{
+			Title:    item.Title,
+			Url:      item.Link,
+			Summary:  item.Snippet,
+			MIMEType: item.Mime,
+		}
+	}
+	return results, nil
 }
