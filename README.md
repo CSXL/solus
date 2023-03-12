@@ -54,7 +54,7 @@ build upon.
 - [ ] Query API
   - [ ] Implement Data Gathering
     - [ ] Implement Colly for scraping
-    - [ ] Implement Google Custom Search API for general searching
+    - [x] Implement Google Custom Search API for general searching
     - [ ] Implement StackExchange API for debugging
     - [ ] Implement Wikipedia API for getting topic overviews
   - [ ] Implement AI Processing
