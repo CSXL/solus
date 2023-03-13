@@ -17,7 +17,9 @@ require (
 require (
 	cloud.google.com/go/compute v1.18.0 // indirect
 	cloud.google.com/go/compute/metadata v0.2.3 // indirect
+	github.com/CSXL/go-wikipedia v0.0.0-20230312231920-0ad18fdf7850 // indirect
 	github.com/alecthomas/chroma v0.10.0 // indirect
+	github.com/antihax/optional v1.0.0 // indirect
 	github.com/atotto/clipboard v0.1.4 // indirect
 	github.com/aymanbagabas/go-osc52/v2 v2.0.1 // indirect
 	github.com/aymerick/douceur v0.2.0 // indirect

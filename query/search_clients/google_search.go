@@ -27,21 +27,21 @@ func NewGoogleSearchClient(ctx context.Context, api_key string, programmable_sea
 	}, nil
 }
 
-type SearchResult struct {
+type GoogleSearchResult struct {
 	Title    string
 	Url      string
 	Summary  string
 	MIMEType string
 }
 
-func (gsc *GoogleSearchClient) Search(query string) ([]*SearchResult, error) {
+func (gsc *GoogleSearchClient) Search(query string) ([]*GoogleSearchResult, error) {
 	response, err := gsc.client.Cse.List().Q(query).Cx(gsc.programmable_search_id).Do()
 	if err != nil {
 		return nil, err
 	}
-	results := make([]*SearchResult, len(response.Items))
+	results := make([]*GoogleSearchResult, len(response.Items))
 	for i, item := range response.Items {
-		results[i] = &SearchResult{
+		results[i] = &GoogleSearchResult{
 			Title:    item.Title,
 			Url:      item.Link,
 			Summary:  item.Snippet,
