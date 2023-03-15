@@ -17,7 +17,6 @@ require (
 require (
 	cloud.google.com/go/compute v1.18.0 // indirect
 	cloud.google.com/go/compute/metadata v0.2.3 // indirect
-	github.com/CSXL/go-wikipedia v0.0.0-20230312231920-0ad18fdf7850 // indirect
 	github.com/alecthomas/chroma v0.10.0 // indirect
 	github.com/antihax/optional v1.0.0 // indirect
 	github.com/atotto/clipboard v0.1.4 // indirect
@@ -47,6 +46,7 @@ require (
 	github.com/muesli/termenv v0.15.0 // indirect
 	github.com/olekukonko/tablewriter v0.0.5 // indirect
 	github.com/pelletier/go-toml/v2 v2.0.6 // indirect
+	github.com/pmylund/go-wikimedia v0.0.0-20130802042651-ca2b93c3aea0 // indirect
 	github.com/rivo/uniseg v0.4.4 // indirect
 	github.com/spf13/afero v1.9.3 // indirect
 	github.com/spf13/cast v1.5.0 // indirect

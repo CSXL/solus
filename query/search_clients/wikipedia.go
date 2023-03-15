@@ -5,8 +5,6 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/url"
-
-	wikipedia "github.com/CSXL/go-wikipedia"
 )
 
 var (
@@ -19,40 +17,45 @@ type WikipediaClient struct {
 	ctx                    context.Context
 	httpclient             *http.Client
 	wikipediaActionBaseUrl string
-	client                 *wikipedia.APIClient
+	UserAgent              string
 }
 
 func NewWikipediaClient(ctx context.Context) (*WikipediaClient, error) {
-	cfg := wikipedia.NewConfiguration()
-	cfg.UserAgent = UserAgent
-	client := wikipedia.NewAPIClient(cfg)
 	httpclient := &http.Client{}
 	return &WikipediaClient{
 		ctx:                    ctx,
-		client:                 client,
+		UserAgent:              UserAgent,
 		httpclient:             httpclient,
 		wikipediaActionBaseUrl: "https://en.wikipedia.org/w/api.php",
 	}, nil
 }
 
-func (c *WikipediaClient) buildSearchRequest(query string) (*http.Request, error) {
+func (c *WikipediaClient) doRequest(query url.Values) (*http.Response, error) {
 	requestUrl, err := url.Parse(c.wikipediaActionBaseUrl)
 	if err != nil {
 		return nil, err
 	}
+	requestUrl.RawQuery = query.Encode()
+	req, err := http.NewRequest("GET", requestUrl.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("User-Agent", UserAgent)
+	return c.httpclient.Do(req)
+}
+
+func (c *WikipediaClient) doSearchRequest(query string) (*http.Response, error) {
 	url_query := url.Values{
 		"action":   {"query"},
 		"list":     {"search"},
 		"srsearch": {query},
 		"format":   {"json"},
 	}
-	requestUrl.RawQuery = url_query.Encode()
-	req, err := http.NewRequest("GET", requestUrl.String(), nil)
+	response, err := c.doRequest(url_query)
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Set("User-Agent", UserAgent)
-	return req, nil
+	return response, nil
 }
 
 type WikipediaSearchResult struct {
@@ -77,17 +80,13 @@ type wikipediaQueryResult struct {
 // Search performs a search on Wikipedia and returns a list of results.
 // See https://en.wikipedia.org/w/api.php?action=help&modules=query%2Bsearch for more information.
 func (c *WikipediaClient) Search(query string) ([]WikipediaSearchResult, error) {
-	request, err := c.buildSearchRequest(query)
+	response, err := c.doSearchRequest(query)
 	if err != nil {
 		return nil, err
 	}
-	resp, err := c.httpclient.Do(request)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
+	defer response.Body.Close()
 	var result wikipediaQueryResult
-	err = json.NewDecoder(resp.Body).Decode(&result)
+	err = json.NewDecoder(response.Body).Decode(&result)
 	if err != nil {
 		return nil, err
 	}
