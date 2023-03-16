@@ -43,3 +43,28 @@ func TestWikipediaClient_Search(t *testing.T) {
 		t.Errorf("Search() returned wrong results: %v", results)
 	}
 }
+
+func TestWikipediaClient_GetPage(t *testing.T) {
+	ctx := context.Background()
+	client, err := NewWikipediaClient(ctx)
+	if err != nil {
+		t.Errorf("NewWikipediaClient() returned error: %v", err)
+	}
+	page := "2005_Azores_subtropical_storm"
+	// Fake the response from the Wikipedia API
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		// Truncated response from https://en.wikipedia.org/w/api.php?action=parse&prop=wikitext&page=2005_Azores_subtropical_storm&format=json
+		// Requested on 3/15/2023
+		fake_response := `{"parse":{"title":"2005 Azores subtropical storm","pageid":7715205,"wikitext":{"*":"Text truncated for testing purposes."}}}`
+		w.Write([]byte(fake_response))
+	}))
+	client.wikipediaActionBaseUrl = ts.URL
+	page_text, err := client.GetPage(page)
+	if err != nil {
+		t.Errorf("GetPage() returned error: %v", err)
+	}
+	if page_text != "Text truncated for testing purposes." {
+		t.Errorf("GetPage() returned wrong text: %s", page_text)
+	}
+}

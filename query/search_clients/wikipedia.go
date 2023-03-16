@@ -93,3 +93,43 @@ func (c *WikipediaClient) Search(query string) ([]WikipediaQuerySearchResult, er
 	results := result.Query.Search
 	return results, nil
 }
+
+func (c *WikipediaClient) doParseRequest(page string) (*http.Response, error) {
+	url_query := url.Values{
+		"action": {"parse"},
+		"page":   {page},
+		"format": {"json"},
+	}
+	response, err := c.doRequest(url_query)
+	if err != nil {
+		return nil, err
+	}
+	return response, nil
+}
+
+type WikipediaParseResult struct {
+	Data string `json:"*"`
+}
+
+type wikipediaParseWikiText struct {
+	WikiText WikipediaParseResult `json:"wikitext"`
+}
+
+type wikipediaParse struct {
+	Parse wikipediaParseWikiText `json:"parse"`
+}
+
+func (c *WikipediaClient) GetPage(page string) (string, error) {
+	response, err := c.doParseRequest(page)
+	if err != nil {
+		return "", err
+	}
+	defer response.Body.Close()
+	var result wikipediaParse
+	err = json.NewDecoder(response.Body).Decode(&result)
+	if err != nil {
+		return "", err
+	}
+	data := result.Parse.WikiText.Data
+	return data, nil
+}
