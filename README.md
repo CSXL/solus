@@ -56,7 +56,7 @@ build upon.
     - [ ] Implement Colly for scraping
     - [x] Implement Google Custom Search API for general searching
     - [ ] Implement StackExchange API for debugging
-    - [ ] Implement Wikipedia API for getting topic overviews
+    - [x] Implement Wikipedia API for getting topic overviews
   - [ ] Implement AI Processing
     - [ ] Implement Codex for extracting relevant information from collected data
     - [ ] Implement Codex for serializing data into a standardized format
