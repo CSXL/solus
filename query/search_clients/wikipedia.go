@@ -58,7 +58,7 @@ func (c *WikipediaClient) doSearchRequest(query string) (*http.Response, error) 
 	return response, nil
 }
 
-type WikipediaSearchResult struct {
+type WikipediaQuerySearchResult struct {
 	Title  string `json:"title"`
 	Url    string `json:"url"`
 	PageID int    `json:"pageid"`
@@ -69,23 +69,23 @@ type WikipediaSearchResult struct {
 	Snippet string `json:"snippet"`
 }
 
-type wikipediaQuery struct {
-	Search []WikipediaSearchResult `json:"search"`
+type wikipediaQuerySearch struct {
+	Search []WikipediaQuerySearchResult `json:"search"`
 }
 
-type wikipediaQueryResult struct {
-	Query wikipediaQuery `json:"query"`
+type wikipediaQuery struct {
+	Query wikipediaQuerySearch `json:"query"`
 }
 
 // Search performs a search on Wikipedia and returns a list of results.
 // See https://en.wikipedia.org/w/api.php?action=help&modules=query%2Bsearch for more information.
-func (c *WikipediaClient) Search(query string) ([]WikipediaSearchResult, error) {
+func (c *WikipediaClient) Search(query string) ([]WikipediaQuerySearchResult, error) {
 	response, err := c.doSearchRequest(query)
 	if err != nil {
 		return nil, err
 	}
 	defer response.Body.Close()
-	var result wikipediaQueryResult
+	var result wikipediaQuery
 	err = json.NewDecoder(response.Body).Decode(&result)
 	if err != nil {
 		return nil, err
