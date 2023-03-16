@@ -94,10 +94,10 @@ func (c *WikipediaClient) Search(query string) ([]WikipediaQuerySearchResult, er
 	return results, nil
 }
 
-func (c *WikipediaClient) doParseRequest(page string) (*http.Response, error) {
+func (c *WikipediaClient) doParseRequest(pageTitle string) (*http.Response, error) {
 	url_query := url.Values{
 		"action": {"parse"},
-		"page":   {page},
+		"page":   {pageTitle},
 		"format": {"json"},
 	}
 	response, err := c.doRequest(url_query)
@@ -119,8 +119,8 @@ type wikipediaParse struct {
 	Parse wikipediaParseWikiText `json:"parse"`
 }
 
-func (c *WikipediaClient) GetPage(page string) (string, error) {
-	response, err := c.doParseRequest(page)
+func (c *WikipediaClient) GetPage(pageTitle string) (string, error) {
+	response, err := c.doParseRequest(pageTitle)
 	if err != nil {
 		return "", err
 	}
@@ -132,4 +132,55 @@ func (c *WikipediaClient) GetPage(page string) (string, error) {
 	}
 	data := result.Parse.WikiText.Data
 	return data, nil
+}
+
+func (c *WikipediaClient) doPageSummaryRequest(pageTitle string) (*http.Response, error) {
+	url_query := url.Values{
+		"action":      {"query"},
+		"prop":        {"extracts"},
+		"exintro":     {"true"},
+		"explaintext": {"true"},
+		"titles":      {pageTitle},
+		"format":      {"json"},
+	}
+	response, err := c.doRequest(url_query)
+	if err != nil {
+		return nil, err
+	}
+	return response, nil
+}
+
+type WikipediaQuerySummary struct {
+	Title   string `json:"title"`
+	Summary string `json:"extract"`
+}
+
+type wikipediaQuerySummaryPages struct {
+	Pages map[string]WikipediaQuerySummary `json:"pages"`
+}
+
+type wikipediaQuerySummary struct {
+	Query wikipediaQuerySummaryPages `json:"query"`
+}
+
+// GetPageSummary returns the summary of a Wikipedia page.
+// See https://en.wikipedia.org/w/api.php?action=help&modules=query%2Bextracts for more information.
+func (c *WikipediaClient) GetPageSummary(pageTitle string) (string, error) {
+	response, err := c.doPageSummaryRequest(pageTitle)
+	if err != nil {
+		return "", err
+	}
+	defer response.Body.Close()
+	var result wikipediaQuerySummary
+	err = json.NewDecoder(response.Body).Decode(&result)
+	if err != nil {
+		return "", err
+	}
+	// The response is a map of pages, but we only requested one page so we can just take the first one.
+	var summary string
+	for _, page := range result.Query.Pages {
+		summary = page.Summary
+		break
+	}
+	return summary, nil
 }
