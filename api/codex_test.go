@@ -20,8 +20,11 @@ func TestExecuteCodexCompletion(t *testing.T) {
 		w.Header().Set("Content-Type", "application/json")
 		// Response from https://api.openai.com/v1/completions (prompt omitted)
 		// Requested on 3/16/2023
-		fake_response := `{"id":"cmpl-6uxqlIGXLAfPhBLZklA1uBLBho6gw","object":"text_completion","created":1679034451,"model":"code-davinci-002","choices":[{"text":"\nprint(\"Hello World\")","index":0,"logprobs":null,"finish_reason":"stop"}],"usage":{"prompt_tokens":6,"completion_tokens":6,"total_tokens":12}}`
-		w.Write([]byte(fake_response))
+		fakeResponse := `{"id":"cmpl-6uxqlIGXLAfPhBLZklA1uBLBho6gw","object":"text_completion","created":1679034451,"model":"code-davinci-002","choices":[{"text":"\nprint(\"Hello World\")","index":0,"logprobs":null,"finish_reason":"stop"}],"usage":{"prompt_tokens":6,"completion_tokens":6,"total_tokens":12}}`
+		_, err := w.Write([]byte(fakeResponse))
+		if err != nil {
+			return
+		}
 	}))
 	client.openAIClient = NewOpenAIWithBaseURL("test", ts.URL)
 	completion, err := client.ExecuteCodexCompletion("# Print hello world in python.")
