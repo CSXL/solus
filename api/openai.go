@@ -59,7 +59,7 @@ func (c *ChatClient) SaveMessages(filename string) error {
 
 func (c *ChatClient) SendMessage(content string, role string) error {
 	c.messages = append(c.messages, Message{content, role})
-	messages, err := c.client.CreateChatCompletion(c.messages)
+	messages, err := c.client.CreateChatCompletion(c.messages, openai.GPT3Dot5Turbo)
 	c.messages = messages
 	return err
 }
@@ -91,34 +91,18 @@ type OpenAI struct {
 func NewOpenAI(api_key string) *OpenAI {
 	return &OpenAI{
 		API_KEY: api_key,
-		client:  openai.NewClient(os.Getenv("OPENAI_API_KEY")),
+		client:  openai.NewClient(api_key),
 	}
 }
 
-func MessagesToOpenAIChatCompletionMessages(messages []Message) []openai.ChatCompletionMessage {
-	var openaiMessages []openai.ChatCompletionMessage
-	for _, m := range messages {
+func (o *OpenAI) CreateChatCompletion(messages []Message, model string) ([]Message, error) {
+	openaiMessages := []openai.ChatCompletionMessage{}
+	for _, message := range messages {
 		openaiMessages = append(openaiMessages, openai.ChatCompletionMessage{
-			Content: m.Content,
-			Role:    m.Role,
+			Content: message.Content,
+			Role:    message.Role,
 		})
 	}
-	return openaiMessages
-}
-
-func OpenAIChatCompletionMessagestoMessages(messages []openai.ChatCompletionMessage) []Message {
-	var newMessages []Message
-	for _, m := range messages {
-		newMessages = append(newMessages, Message{
-			Content: m.Content,
-			Role:    m.Role,
-		})
-	}
-	return newMessages
-}
-
-func (o *OpenAI) CreateChatCompletion(messages []Message) ([]Message, error) {
-	openaiMessages := MessagesToOpenAIChatCompletionMessages(messages)
 	resp, err := o.client.CreateChatCompletion(
 		context.Background(),
 		openai.ChatCompletionRequest{
