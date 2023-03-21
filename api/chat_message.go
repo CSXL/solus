@@ -3,9 +3,10 @@ package api
 import (
 	"context"
 	"encoding/json"
+	"io"
 	"os"
 
-	openai "github.com/sashabaranov/go-openai"
+	"github.com/sashabaranov/go-openai"
 )
 
 type ChatMessage struct {
@@ -40,17 +41,26 @@ func (c *ChatClient) ClearMessages() {
 }
 
 func (c *ChatClient) LoadMessages(filename string) error {
-	messages := []ChatMessage{}
-	file, err := os.ReadFile(filename)
+	handle, err := os.Open(filename)
 	if err != nil {
 		return err
 	}
-	err = json.Unmarshal(file, &messages)
-	if err != nil {
-		return err
-	}
+	defer handle.Close()
+	messages, err := c.unmarshalMessages(handle)
 	c.messages = messages
+	if err != nil {
+		return err
+	}
 	return nil
+}
+
+func (c *ChatClient) unmarshalMessages(handle io.Reader) ([]ChatMessage, error) {
+	var messages []ChatMessage
+	err := json.NewDecoder(handle).Decode(&messages)
+	if err != nil {
+		return nil, err
+	}
+	return messages, nil
 }
 
 func (c *ChatClient) SaveMessages(filename string) error {
@@ -70,6 +80,9 @@ func (c *ChatClient) SendMessage(content string, role string) error {
 }
 
 func (c *ChatClient) GetLastMessage() ChatMessage {
+	if len(c.messages) == 0 {
+		return ChatMessage{}
+	}
 	return c.messages[len(c.messages)-1]
 }
 
@@ -89,7 +102,7 @@ func (c *ChatClient) SendSystemMessage(msg string) error {
 }
 
 func (c *ChatClient) CreateChatCompletion(messages []ChatMessage, model string) ([]ChatMessage, error) {
-	openaiMessages := []openai.ChatCompletionMessage{}
+	var openaiMessages []openai.ChatCompletionMessage
 	for _, message := range messages {
 		openaiMessages = append(openaiMessages, openai.ChatCompletionMessage{
 			Content: message.Content,
@@ -99,7 +112,7 @@ func (c *ChatClient) CreateChatCompletion(messages []ChatMessage, model string) 
 	resp, err := c.openAIClient.client.CreateChatCompletion(
 		context.Background(),
 		openai.ChatCompletionRequest{
-			Model:    openai.GPT3Dot5Turbo,
+			Model:    model,
 			Messages: openaiMessages,
 		},
 	)
