@@ -58,8 +58,8 @@ build upon.
     - [ ] Implement StackExchange API for debugging
     - [x] Implement Wikipedia API for getting topic overviews
   - [ ] Implement AI Processing
-    - [ ] Implement Codex for extracting relevant information from collected data
-    - [ ] Implement Codex for serializing data into a standardized format
+    - [ ] Implement gpt-3.5-turbo for extracting relevant information from collected data
+    - [ ] Implement gpt-3.5-turbo for serializing data into a standardized format
     - [ ] Implement verification of AI output
 - [x] Interface
   - [x] Implement CLI
@@ -69,16 +69,16 @@ build upon.
     - [x] Implement and wrap the [gpt-3.5-turbo](https://openai.com/blog/introducing-chatgpt-and-whisper-apis) language model
   - [x] Implement configuration with [Viper](https://github.com/spf13/viper)
 - [ ] Requirements API
-  - [ ] Implement Codex for processing requirements from conversations
+  - [ ] Implement gpt-3.5-turbo for processing requirements from conversations
 - [ ] Outline API
-  - [ ] Implement Codex for generating project outline
-    - [ ] Implement Codex for revising project outline
+  - [ ] Implement gpt-3.5-turbo for generating project outline
+    - [ ] Implement gpt-3.5-turbo for revising project outline
   - [ ] Implement file and directory generation
 - [ ] Dependency API
   - [ ] Implement Query API for resolving dependencies and their documentation
   - [ ] Implement generation of dependency names and documentation
 - [ ] Code API
-  - [ ] Implement Codex for generating test stubs, code, and comments
+  - [ ] Implement gpt-3.5-turbo for generating test stubs, code, and comments
     - [ ] Implement context-aware code generation and comments that align with the requirements and dependencies
   - [ ] Implement refactoring of code and incorporation of code standards
 - [ ] Debugging API
