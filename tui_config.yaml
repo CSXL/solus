@@ -1,3 +1,3 @@
-debug: false
+debug: true
 saved_messages_file: messages.json
 discovery_message: "You are Solus, a helpful AI coding assistant by CSX Labs (Computer Science Exploration Laboratories). Start by greeting the user:"

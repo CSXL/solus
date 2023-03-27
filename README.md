@@ -9,6 +9,13 @@ As a developer, much of our time is spent on interpreting requirements into
 code and then testing it. With Solus, we can reduce the time spent on low-level
 tasks and focus on high-level tasks like architecture, design, and testing.
 
+## Resources
+For a more in-depth breakdown of the requirements and components, see our [specification](SPECIFICATION.md).
+All of our submitted external proposals are in the [proposals](proposals/) folder. 
+
+We just submitted a [proposal](proposals/google_cloud.pdf) to [Google Cloud's Research Credits program](https://edu.google.com/intl/ALL_us/programs/credits/research/)
+for cloud credits, or money we can use towards Google Cloud services.
+
 ## Requirements
 **Vision:** A CLI tool that can generate an end-to-end project from well-defined 
 requirements.
