@@ -1,6 +1,8 @@
 # Solus
 An `AI-assisted` project generator.
 
+See the project [specification](SPECIFICATION.md) for more specific technical details.
+
 ## Mission
 To automate the process of creating a project from requirements.
 
