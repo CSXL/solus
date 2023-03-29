@@ -7,6 +7,23 @@ import (
 	"testing"
 )
 
+func TestChatMessage__ToAIMessage(t *testing.T) {
+	msg := ChatMessage{
+		Content: `{"type": "message", "content": "Hello World"}`,
+		Role:    "user",
+	}
+	aimsg, err := msg.ToAIMessage()
+	if err != nil {
+		t.Error(err)
+	}
+	if aimsg.GetContent() != "Hello World" {
+		t.Errorf("ToAIMessage() returned wrong content: %v", aimsg.GetContent())
+	}
+	if !aimsg.IsMessage() {
+		t.Errorf("ToAIMessage() returned wrong type: %v", aimsg.GetType())
+	}
+}
+
 func TestNewChatClient(t *testing.T) {
 	client := NewChatClient("test")
 	if client == nil {
@@ -61,8 +78,8 @@ func TestUnmarhsalMessages(t *testing.T) {
 		if actualMessages[i].Content != expectedMessages[i].Content {
 			t.Errorf("unmarshalMessages() returned wrong message content: %v", actualMessages[i].Content)
 		}
-		if actualMessages[i].Role != expectedMessages[i].Role {
-			t.Errorf("unmarshalMessages() returned wrong message role: %v", actualMessages[i].Role)
+		if actualMessages[i].GetRole() != expectedMessages[i].GetRole() {
+			t.Errorf("unmarshalMessages() returned wrong message role: %v", actualMessages[i].GetRole())
 		}
 	}
 }
@@ -84,8 +101,8 @@ func TestGetLastMessage(t *testing.T) {
 	if lastMessage.Content != "Hello World" {
 		t.Errorf("GetLastMessage() returned wrong message content: %v", lastMessage.Content)
 	}
-	if lastMessage.Role != "assistant" {
-		t.Errorf("GetLastMessage() returned wrong message role: %v", lastMessage.Role)
+	if lastMessage.GetRole() != "assistant" {
+		t.Errorf("GetLastMessage() returned wrong message role: %v", lastMessage.GetRole())
 	}
 }
 
@@ -93,7 +110,7 @@ func TestCreateChatCompletion(t *testing.T) {
 	client := NewChatClient("test")
 	// Fake the response from the OpenAI API
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("content-Type", "application/json")
 		// Response from https://api.openai.com/v1/chat/completions (prompt omitted)
 		// Requested on 3/20/2023
 		fakeResponse := `{"id":"chatcmpl-123","object":"chat.completion","created":1679367552,"model":"gpt-3.5-turbo-0301","usage":{"prompt_tokens":9,"completion_tokens":11,"total_tokens":20},"choices":[{"message":{"role":"assistant","content":"\n\nHi there! How may I assist you today?"},"finish_reason":"stop","index":0}]}`
@@ -117,7 +134,7 @@ func TestCreateChatCompletion(t *testing.T) {
 	if err != nil {
 		t.Errorf("CreateChatCompletion() returned error: %v", err)
 	}
-	lastMessageContent := newMessages[len(newMessages)-1].Content
+	lastMessageContent := newMessages[len(newMessages)-1].GetContent()
 	if lastMessageContent != "\n\nHi there! How may I assist you today?" {
 		t.Errorf("CreateChatCompletion() returned wrong completion: %v", lastMessageContent)
 	}
@@ -141,7 +158,7 @@ func TestSendMessage(t *testing.T) {
 	if err != nil {
 		t.Errorf("SendMessage() returned error: %v", err)
 	}
-	lastMessageContent := client.GetLastMessage().Content
+	lastMessageContent := client.GetLastMessage().GetContent()
 	if lastMessageContent != "\n\nHi there! How may I assist you today?" {
 		t.Errorf("SendMessage() returned wrong completion: %v", lastMessageContent)
 	}

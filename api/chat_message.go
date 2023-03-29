@@ -9,9 +9,48 @@ import (
 	"github.com/sashabaranov/go-openai"
 )
 
+type AIMessage struct {
+	Type    string `json:"type"`
+	Content string `json:"content"`
+}
+
+func (msg *AIMessage) GetContent() string {
+	return msg.Content
+}
+
+func (msg *AIMessage) GetType() string {
+	return msg.Type
+}
+
+func (msg *AIMessage) IsQuery() bool {
+	return msg.Type == "query"
+}
+
+func (msg *AIMessage) IsMessage() bool {
+	return msg.Type == "message"
+}
+
 type ChatMessage struct {
 	Content string
 	Role    string
+}
+
+func (msg ChatMessage) GetContent() string {
+	return msg.Content
+}
+
+func (msg ChatMessage) GetRole() string {
+	return msg.Role
+}
+
+func (msg *ChatMessage) ToAIMessage() (AIMessage, error) {
+	marshalledContent := msg.GetContent()
+	var unMarshalledContent AIMessage
+	err := json.Unmarshal([]byte(marshalledContent), &unMarshalledContent)
+	if err != nil {
+		return unMarshalledContent, nil
+	}
+	return unMarshalledContent, err
 }
 
 type ChatClient struct {
@@ -105,8 +144,8 @@ func (c *ChatClient) CreateChatCompletion(messages []ChatMessage, model string) 
 	var openaiMessages []openai.ChatCompletionMessage
 	for _, message := range messages {
 		openaiMessages = append(openaiMessages, openai.ChatCompletionMessage{
-			Content: message.Content,
-			Role:    message.Role,
+			Content: message.GetContent(),
+			Role:    message.GetRole(),
 		})
 	}
 	resp, err := c.openAIClient.client.CreateChatCompletion(

@@ -176,13 +176,60 @@ func (m model) View() string {
 	return s
 }
 
+type tuiMessage struct {
+	_type   string
+	role    string
+	content string
+}
+
+func newTUIMessage(_type string, role string, content string) tuiMessage {
+	return tuiMessage{
+		role:    role,
+		_type:   _type,
+		content: content,
+	}
+}
+
+func (tmsg *tuiMessage) GetType() string {
+	return tmsg._type
+}
+
+func (tmsg *tuiMessage) GetRole() string {
+	return tmsg.role
+}
+
+func (tmsg *tuiMessage) GetContent() string {
+	return tmsg.content
+}
+
+func processMessage(msg api.ChatMessage) (tuiMessage, error) {
+	var tuiMsg tuiMessage
+	if msg.GetRole() == "assistant" {
+		AIMessage, err := msg.ToAIMessage()
+		if err != nil {
+			return tuiMsg, err
+		}
+		tuiMsg = newTUIMessage(AIMessage.GetType(), msg.GetRole(), AIMessage.GetContent())
+		return tuiMsg, nil
+	}
+	tuiMsg = newTUIMessage("message", msg.GetRole(), msg.GetContent())
+	return tuiMsg, nil
+}
+
 func (m model) ChatView() string {
 	var s string
 	for _, msg := range m.ChatClient.GetMessages() {
-		formatted_role := strings.ToUpper(msg.Role)
+		tuiMsg, _ := processMessage(msg)
+		formatted_role := strings.ToUpper(tuiMsg.GetRole())
 		markdown_renderer, _ := glamour.NewTermRenderer(glamour.WithAutoStyle())
-		markdown_content, _ := markdown_renderer.Render(msg.Content)
-		formatted_message := fmt.Sprintf("[%s]: %s", formatted_role, markdown_content)
+		markdown_content, _ := markdown_renderer.Render(tuiMsg.GetContent())
+		var formatted_message string
+		switch tuiMsg.GetType() {
+		case "query":
+			formatted_message = fmt.Sprintf("[%s]: %s", "ASSISTANT QUERY", markdown_content)
+		default:
+			formatted_message = fmt.Sprintf("[%s]: %s", formatted_role, markdown_content)
+		}
 		s += styles.secondary.Render(formatted_message)
 		s += "\n"
 	}
