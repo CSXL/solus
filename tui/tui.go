@@ -119,6 +119,8 @@ func (m model) Init() tea.Cmd {
 }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	var cmds []tea.Cmd
+	var cmd tea.Cmd
 	switch msg := msg.(type) {
 	case tea.WindowSizeMsg:
 		m.screen.width = msg.Width
@@ -130,6 +132,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case key.Matches(msg, keybindings.ToggleFocus):
 			if m.input.Focused() {
 				m.input.Blur()
+				cmd := tea.ClearScreen
+				cmds = append(cmds, cmd)
 			} else {
 				m.input.Focus()
 			}
@@ -156,9 +160,6 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		}
 	}
-
-	var cmds []tea.Cmd
-	var cmd tea.Cmd
 	if m.input.Focused() {
 		m.input, cmd = m.input.Update(msg)
 		cmds = append(cmds, cmd)
