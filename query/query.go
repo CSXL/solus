@@ -18,11 +18,11 @@ type QueryBuilder struct {
 
 // NewQuery returns a new QueryBuilder.
 // It uses the builder design pattern to allow method chaining.
-func NewQuery(ctx context.Context, searchClientConfig *search_clients.SearchClientConfig) *QueryBuilder {
+func NewQuery(ctx context.Context, searchClientConfig search_clients.SearchClientConfig) *QueryBuilder {
 	googleSheetAPIKey := searchClientConfig.GetGoogleSearchAPIKey()
 	googleSheetID := searchClientConfig.GetGoogleSearchEngineID()
 	googleSearchClient, err := search_clients.NewGoogleSearchClient(ctx, googleSheetAPIKey, googleSheetID)
-	return &QueryBuilder{ctx: ctx, searchClientConfig: *searchClientConfig, googleSearchClient: googleSearchClient, err: err}
+	return &QueryBuilder{ctx: ctx, searchClientConfig: searchClientConfig, googleSearchClient: googleSearchClient, err: err}
 }
 
 func (q *QueryBuilder) SetQueryText(text string) *QueryBuilder {

@@ -14,7 +14,7 @@ import (
 func TestNewQuery(t *testing.T) {
 	ctx := context.Background()
 	searchClientConfig := search_clients.NewSearchClientConfig("test", "test")
-	q := NewQuery(ctx, searchClientConfig)
+	q := NewQuery(ctx, *searchClientConfig)
 	if q == nil {
 		t.Errorf("NewQuery() returned nil")
 	}
@@ -24,7 +24,7 @@ func TestNewQuery(t *testing.T) {
 func TestQueryBuilder_SettersandGetters(t *testing.T) {
 	ctx := context.Background()
 	searchClientConfig := search_clients.NewSearchClientConfig("test", "test")
-	q := NewQuery(ctx, searchClientConfig)
+	q := NewQuery(ctx, *searchClientConfig)
 	queryText := "test_query"
 	q.SetQueryText(queryText)
 	if q.GetQueryText() != queryText {
@@ -62,7 +62,7 @@ func TestQueryBuilder_Execute(t *testing.T) {
 		}
 		json.NewEncoder(w).Encode(response)
 	}))
-	q := NewQuery(ctx, searchClientConfig)
+	q := NewQuery(ctx, *searchClientConfig)
 	q.googleSearchClient.SetBasePath(ts.URL)
 	queryText := "test_query"
 	q.SetQueryText(queryText)

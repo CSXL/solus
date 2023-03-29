@@ -111,8 +111,12 @@ func (c *ChatClient) SaveMessages(filename string) error {
 	return nil
 }
 
-func (c *ChatClient) SendMessage(content string, role string) error {
+func (c *ChatClient) AddMessage(role string, content string) {
 	c.messages = append(c.messages, ChatMessage{content, role})
+}
+
+func (c *ChatClient) SendMessage(content string, role string) error {
+	c.AddMessage(role, content)
 	messages, err := c.CreateChatCompletion(c.messages, openai.GPT3Dot5Turbo)
 	c.messages = messages
 	return err

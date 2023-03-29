@@ -1,12 +1,16 @@
 package tui
 
 import (
+	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
 
 	"github.com/CSXL/solus/api"
 	"github.com/CSXL/solus/config"
+	"github.com/CSXL/solus/query"
+	"github.com/CSXL/solus/query/search_clients"
 	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/textinput"
 	"github.com/charmbracelet/bubbles/viewport"
@@ -27,16 +31,18 @@ type keyMap struct {
 }
 
 type colorMap struct {
-	primary   lipgloss.Color
-	secondary lipgloss.Color
-	title     lipgloss.Color
+	primary     lipgloss.Color
+	secondary   lipgloss.Color
+	specialText lipgloss.Color
+	title       lipgloss.Color
 }
 
 type styleMap struct {
-	primary   lipgloss.Style
-	secondary lipgloss.Style
-	title     lipgloss.Style
-	body      lipgloss.Style
+	primary     lipgloss.Style
+	secondary   lipgloss.Style
+	title       lipgloss.Style
+	specialText lipgloss.Style
+	body        lipgloss.Style
 }
 
 var (
@@ -50,15 +56,18 @@ var (
 		Down:        key.NewBinding(key.WithKeys("k", "down"), key.WithHelp("k/↓", "Scroll down")),
 	}
 	colors = colorMap{
-		primary:   lipgloss.Color("#f8f8f2"),
-		secondary: lipgloss.Color("#b581c7"),
-		title:     lipgloss.Color("#b581c7"),
+		primary:     lipgloss.Color("#f8f8f2"),
+		secondary:   lipgloss.Color("#b581c7"),
+		title:       lipgloss.Color("#b581c7"),
+		specialText: lipgloss.Color("#FFD580"),
 	}
 	styles = styleMap{
 		primary: lipgloss.NewStyle().
 			Foreground(colors.primary),
 		secondary: lipgloss.NewStyle().
 			Foreground(colors.secondary),
+		specialText: lipgloss.NewStyle().
+			Foreground(colors.specialText),
 		title: lipgloss.NewStyle().
 			Foreground(colors.title).
 			Bold(true).
@@ -84,22 +93,24 @@ type screen struct {
 }
 
 type TUIConfig struct {
-	SavedMessagesFile string
-	DiscoveryMessage  string
-	APIKey            string // In environment variable OPENAI_API_KEY
-	Debug             bool
+	SavedMessagesFile    string
+	DiscoveryMessage     string
+	APIKey               string // In environment variable OPENAI_API_KEY
+	LoadMessagesFromFile bool
+	Debug                bool
 }
 
 type model struct {
-	ChatClient *api.ChatClient
-	screen     screen
-	input      textinput.Model
-	viewport   viewport.Model
-	tui_config TUIConfig
-	err        error
+	ChatClient  *api.ChatClient
+	QueryClient *query.QueryBuilder
+	screen      screen
+	input       textinput.Model
+	viewport    viewport.Model
+	tui_config  TUIConfig
+	err         error
 }
 
-func NewModel(tui_config TUIConfig) model {
+func NewModel(tui_config TUIConfig, query_client *query.QueryBuilder) model {
 	ti := textinput.New()
 	ti.Prompt = ""
 	ti.Placeholder = "Enter your message here..."
@@ -107,10 +118,11 @@ func NewModel(tui_config TUIConfig) model {
 	ti.CharLimit = 256
 	ti.Width = 80
 	return model{
-		ChatClient: api.NewChatClient(tui_config.APIKey),
-		input:      ti,
-		viewport:   viewport.New(80, 20),
-		tui_config: tui_config,
+		ChatClient:  api.NewChatClient(tui_config.APIKey),
+		input:       ti,
+		viewport:    viewport.New(80, 20),
+		tui_config:  tui_config,
+		QueryClient: query_client,
 	}
 }
 
@@ -143,7 +155,16 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		case key.Matches(msg, keybindings.Enter):
 			if m.input.Value() != "" {
-				m.ChatClient.SendUserMessage(m.input.Value())
+				messageToSend := tuiMessage{
+					Type:    "message",
+					Content: m.input.Value(),
+					Role:    "user",
+				}
+				jsonMessage, err := json.Marshal(messageToSend)
+				if err != nil {
+					m.err = err
+				}
+				m.ChatClient.SendUserMessage(string(jsonMessage))
 				m.input.SetValue("")
 			}
 		case key.Matches(msg, keybindings.Save):
@@ -177,34 +198,34 @@ func (m model) View() string {
 }
 
 type tuiMessage struct {
-	_type   string
-	role    string
-	content string
+	Type    string `json:"type"`
+	Role    string `json:"role"`
+	Content string `json:"content"`
 }
 
 func newTUIMessage(_type string, role string, content string) tuiMessage {
 	return tuiMessage{
-		role:    role,
-		_type:   _type,
-		content: content,
+		Role:    role,
+		Type:    _type,
+		Content: content,
 	}
 }
 
 func (tmsg *tuiMessage) GetType() string {
-	return tmsg._type
+	return tmsg.Type
 }
 
 func (tmsg *tuiMessage) GetRole() string {
-	return tmsg.role
+	return tmsg.Role
 }
 
 func (tmsg *tuiMessage) GetContent() string {
-	return tmsg.content
+	return tmsg.Content
 }
 
 func processMessage(msg api.ChatMessage) (tuiMessage, error) {
 	var tuiMsg tuiMessage
-	if msg.GetRole() == "assistant" {
+	if msg.GetRole() == "assistant" || msg.GetRole() == "user" {
 		AIMessage, err := msg.ToAIMessage()
 		if err != nil {
 			return tuiMsg, err
@@ -216,8 +237,34 @@ func processMessage(msg api.ChatMessage) (tuiMessage, error) {
 	return tuiMsg, nil
 }
 
+func (m model) resolveLastMessage() error {
+	lastMessage := m.ChatClient.GetLastMessage()
+	if lastMessage.GetRole() == "assistant" {
+		AIMessage, err := lastMessage.ToAIMessage()
+		if err != nil {
+			return err
+		}
+		if AIMessage.IsQuery() {
+			queryResults, err := m.QueryClient.SetType("search").SetQueryText(AIMessage.GetContent()).Execute().GetResults()
+			if err != nil {
+				return err
+			}
+			err = m.ChatClient.SendSystemMessage(queryResults)
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
 func (m model) ChatView() string {
 	var s string
+	err := m.resolveLastMessage()
+	if err != nil {
+		m.err = err
+		return m.err.Error()
+	}
 	for _, msg := range m.ChatClient.GetMessages() {
 		tuiMsg, _ := processMessage(msg)
 		formatted_role := strings.ToUpper(tuiMsg.GetRole())
@@ -226,9 +273,12 @@ func (m model) ChatView() string {
 		var formatted_message string
 		switch tuiMsg.GetType() {
 		case "query":
-			formatted_message = fmt.Sprintf("[%s]: %s", "ASSISTANT QUERY", markdown_content)
+			coloredQuery := styles.specialText.Render(strings.Trim(tuiMsg.GetContent(), " \n"))
+			formatted_message = fmt.Sprintf("Searching: %s", coloredQuery)
 		default:
-			formatted_message = fmt.Sprintf("[%s]: %s", formatted_role, markdown_content)
+			if tuiMsg.GetRole() != "system" || m.tui_config.Debug {
+				formatted_message = fmt.Sprintf("[%s]: %s", formatted_role, markdown_content)
+			}
 		}
 		s += styles.secondary.Render(formatted_message)
 		s += "\n"
@@ -251,6 +301,7 @@ func readTUIConfig() (TUIConfig, error) {
 	tui_config := TUIConfig{}
 	tui_config.SavedMessagesFile = config_reader.Get("saved_messages_file").(string)
 	tui_config.DiscoveryMessage = config_reader.Get("discovery_message").(string)
+	tui_config.LoadMessagesFromFile = config_reader.Get("load_messages_from_file").(bool)
 	tui_config.Debug = config_reader.Get("debug").(bool)
 	return tui_config, nil
 }
@@ -270,7 +321,7 @@ func loadTUIConfig() (TUIConfig, error) {
 }
 
 func prepareChatClient(config TUIConfig, chatClient *api.ChatClient) error {
-	if config.Debug {
+	if config.LoadMessagesFromFile {
 		err := chatClient.LoadMessages(config.SavedMessagesFile)
 		if err != nil {
 			return err
@@ -284,12 +335,30 @@ func prepareChatClient(config TUIConfig, chatClient *api.ChatClient) error {
 	return nil
 }
 
+func loadSearchEngineConfig() (search_clients.SearchClientConfig, error) {
+	err := godotenv.Load()
+	if err != nil {
+		return search_clients.SearchClientConfig{}, err
+	}
+	search_engine_config := search_clients.SearchClientConfig{
+		GoogleSearchAPIKey:   os.Getenv("GOOGLE_API_KEY"),
+		GoogleSearchEngineID: os.Getenv("GOOGLE_PROGRAMMABLE_SEARCH_ENGINE_ID"),
+	}
+	return search_engine_config, nil
+}
+
 func Run() (tea.Model, error) {
+	ctx := context.Background()
 	tui_config, err := loadTUIConfig()
 	if err != nil {
 		return nil, err
 	}
-	m := NewModel(tui_config)
+	search_engine_config, err := loadSearchEngineConfig()
+	if err != nil {
+		return nil, err
+	}
+	query_client := query.NewQuery(ctx, search_engine_config)
+	m := NewModel(tui_config, query_client)
 	err = prepareChatClient(tui_config, m.ChatClient)
 	if err != nil {
 		return nil, err
