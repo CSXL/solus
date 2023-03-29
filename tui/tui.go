@@ -194,30 +194,57 @@ func (m model) ChatView() string {
 	return s
 }
 
-func Run() (tea.Model, error) {
-	err := godotenv.Load()
-	if err != nil {
-		return nil, err
-	}
-	openai_api_key := os.Getenv("OPENAI_API_KEY")
-	tui_config := TUIConfig{}
-	tui_config.APIKey = openai_api_key
+func readTUIConfig() (TUIConfig, error) {
 	config_reader := config.New()
-	err = config_reader.Read("tui_config", ".")
+	err := config_reader.Read("tui_config", ".")
 	if err != nil {
-		return nil, err
+		return TUIConfig{}, err
 	}
+	tui_config := TUIConfig{}
 	tui_config.SavedMessagesFile = config_reader.Get("saved_messages_file").(string)
 	tui_config.DiscoveryMessage = config_reader.Get("discovery_message").(string)
 	tui_config.Debug = config_reader.Get("debug").(bool)
-	m := NewModel(tui_config)
-	if tui_config.Debug {
-		m.ChatClient.LoadMessages(tui_config.SavedMessagesFile)
-	} else {
-		err = m.ChatClient.SendSystemMessage(tui_config.DiscoveryMessage)
+	return tui_config, nil
+}
+
+func loadTUIConfig() (TUIConfig, error) {
+	err := godotenv.Load()
+	if err != nil {
+		return TUIConfig{}, err
+	}
+	openai_api_key := os.Getenv("OPENAI_API_KEY")
+	tui_config, err := readTUIConfig()
+	if err != nil {
+		return TUIConfig{}, err
+	}
+	tui_config.APIKey = openai_api_key
+	return tui_config, nil
+}
+
+func prepareChatClient(config TUIConfig, chatClient *api.ChatClient) error {
+	if config.Debug {
+		err := chatClient.LoadMessages(config.SavedMessagesFile)
 		if err != nil {
-			return nil, err
+			return err
 		}
+	} else {
+		err := chatClient.SendSystemMessage(config.DiscoveryMessage)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func Run() (tea.Model, error) {
+	tui_config, err := loadTUIConfig()
+	if err != nil {
+		return nil, err
+	}
+	m := NewModel(tui_config)
+	err = prepareChatClient(tui_config, m.ChatClient)
+	if err != nil {
+		return nil, err
 	}
 	p := tea.NewProgram(m, tea.WithAltScreen(), tea.WithMouseCellMotion())
 	return p.Run()
