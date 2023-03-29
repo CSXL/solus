@@ -2,28 +2,29 @@ package search_clients
 
 import (
 	"context"
+	"encoding/json"
 
 	"google.golang.org/api/customsearch/v1"
 	"google.golang.org/api/option"
 )
 
 type GoogleSearchClient struct {
-	api_key                string
-	programmable_search_id string
-	ctx                    context.Context
-	client                 *customsearch.Service
+	apiKey               string
+	googleSearchEngineID string
+	ctx                  context.Context
+	client               *customsearch.Service
 }
 
-func NewGoogleSearchClient(ctx context.Context, api_key string, programmable_search_id string) (*GoogleSearchClient, error) {
-	client, err := customsearch.NewService(ctx, option.WithAPIKey(api_key))
+func NewGoogleSearchClient(ctx context.Context, apiKey string, googleSearchEngineID string) (*GoogleSearchClient, error) {
+	client, err := customsearch.NewService(ctx, option.WithAPIKey(apiKey))
 	if err != nil {
 		return nil, err
 	}
 	return &GoogleSearchClient{
-		api_key:                api_key,
-		programmable_search_id: programmable_search_id,
-		client:                 client,
-		ctx:                    ctx,
+		apiKey:               apiKey,
+		googleSearchEngineID: googleSearchEngineID,
+		client:               client,
+		ctx:                  ctx,
 	}, nil
 }
 
@@ -34,8 +35,20 @@ type GoogleSearchResult struct {
 	MIMEType string
 }
 
+// GetBasePath returns the base path of the GoogleSearchClient's HTTP client
+func (gsc *GoogleSearchClient) GetBasePath() string {
+	return gsc.client.BasePath
+}
+
+// SetBasePath sets the base path of the GoogleSearchClient's HTTP client
+//
+// This is useful for unit testing.
+func (gsc *GoogleSearchClient) SetBasePath(basePath string) {
+	gsc.client.BasePath = basePath
+}
+
 func (gsc *GoogleSearchClient) Search(query string) ([]*GoogleSearchResult, error) {
-	response, err := gsc.client.Cse.List().Q(query).Cx(gsc.programmable_search_id).Do()
+	response, err := gsc.client.Cse.List().Q(query).Cx(gsc.googleSearchEngineID).Do()
 	if err != nil {
 		return nil, err
 	}
@@ -49,4 +62,12 @@ func (gsc *GoogleSearchClient) Search(query string) ([]*GoogleSearchResult, erro
 		}
 	}
 	return results, nil
+}
+
+func GoogleSearchResultsToJSON(results []*GoogleSearchResult) (string, error) {
+	json, err := json.Marshal(results)
+	if err != nil {
+		return "", err
+	}
+	return string(json), nil
 }

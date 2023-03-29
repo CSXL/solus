@@ -29,7 +29,7 @@ func TestGoogleSearchClient_Search(t *testing.T) {
 		t.Errorf("NewGoogleSearchClient() returned error: %v", err)
 	}
 	query := "test_query"
-	// Fake the response from the Google CustomSearch API
+	// Fake the response from the Google Programmble Search Engine API
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		response := &customsearch.Search{
 			Items: []*customsearch.Result{
@@ -51,7 +51,7 @@ func TestGoogleSearchClient_Search(t *testing.T) {
 	}))
 
 	// Set the client's HTTP client to the test server
-	client.client.BasePath = ts.URL
+	client.SetBasePath(ts.URL)
 
 	// Perform the search
 	results, err := client.Search(query)
@@ -63,5 +63,30 @@ func TestGoogleSearchClient_Search(t *testing.T) {
 	}
 	if results[0].Title != "test_title" || results[0].Url != "test_url" || results[0].Summary != "test_summary" || results[0].MIMEType != "text/plain" {
 		t.Errorf("Search() returned wrong results: %v", results)
+	}
+}
+
+func TestGoogleSearchResultsToJSON(t *testing.T) {
+	results := []*GoogleSearchResult{
+		{
+			Title:    "test_title",
+			Url:      "test_url",
+			Summary:  "test_summary",
+			MIMEType: "text/plain",
+		},
+		{
+			Title:    "test_title2",
+			Url:      "test_url2",
+			Summary:  "test_summary2",
+			MIMEType: "text/plain",
+		},
+	}
+	json, err := GoogleSearchResultsToJSON(results)
+	if err != nil {
+		t.Errorf("GoogleSearchResultsToJSON() returned error: %v", err)
+	}
+	expected := `[{"Title":"test_title","Url":"test_url","Summary":"test_summary","MIMEType":"text/plain"},{"Title":"test_title2","Url":"test_url2","Summary":"test_summary2","MIMEType":"text/plain"}]`
+	if json != expected {
+		t.Errorf("GoogleSearchResultsToJSON() returned wrong JSON: %s", json)
 	}
 }
