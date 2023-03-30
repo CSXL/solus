@@ -9,27 +9,6 @@ import (
 	"github.com/sashabaranov/go-openai"
 )
 
-type AIMessage struct {
-	Type    string `json:"type"`
-	Content string `json:"content"`
-}
-
-func (msg *AIMessage) GetContent() string {
-	return msg.Content
-}
-
-func (msg *AIMessage) GetType() string {
-	return msg.Type
-}
-
-func (msg *AIMessage) IsQuery() bool {
-	return msg.Type == "query"
-}
-
-func (msg *AIMessage) IsMessage() bool {
-	return msg.Type == "message"
-}
-
 type ChatMessage struct {
 	Content string
 	Role    string
@@ -43,14 +22,13 @@ func (msg ChatMessage) GetRole() string {
 	return msg.Role
 }
 
-func (msg *ChatMessage) ToAIMessage() (AIMessage, error) {
+func (msg *ChatMessage) ToAIMessage() (*AIMessage, error) {
 	marshalledContent := msg.GetContent()
-	var unMarshalledContent AIMessage
-	err := json.Unmarshal([]byte(marshalledContent), &unMarshalledContent)
+	AIMessage, err := NewAIMessageFromJSONString(marshalledContent)
 	if err != nil {
-		return unMarshalledContent, nil
+		return AIMessage, err
 	}
-	return unMarshalledContent, err
+	return AIMessage, nil
 }
 
 type ChatClient struct {
@@ -111,12 +89,21 @@ func (c *ChatClient) SaveMessages(filename string) error {
 	return nil
 }
 
-func (c *ChatClient) AddMessage(role string, content string) {
-	c.messages = append(c.messages, ChatMessage{content, role})
+func (c *ChatClient) AddMessage(role string, content string) error {
+	aiMessage := NewAIMessage("message", content)
+	marshalledContent, err := aiMessage.ToJSONString()
+	if err != nil {
+		return err
+	}
+	c.messages = append(c.messages, ChatMessage{marshalledContent, role})
+	return nil
 }
 
 func (c *ChatClient) SendMessage(content string, role string) error {
-	c.AddMessage(role, content)
+	err := c.AddMessage(role, content)
+	if err != nil {
+		return err
+	}
 	messages, err := c.CreateChatCompletion(c.messages, openai.GPT3Dot5Turbo)
 	c.messages = messages
 	return err
