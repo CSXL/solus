@@ -223,6 +223,14 @@ func (tmsg *tuiMessage) GetContent() string {
 	return tmsg.Content
 }
 
+func (tmsg *tuiMessage) ToJSON() (string, error) {
+	jsonMessage, err := json.Marshal(tmsg)
+	if err != nil {
+		return "", err
+	}
+	return string(jsonMessage), nil
+}
+
 func processMessage(msg api.ChatMessage) (tuiMessage, error) {
 	var tuiMsg tuiMessage
 	if msg.GetRole() == "assistant" || msg.GetRole() == "user" {
@@ -274,7 +282,7 @@ func (m model) ChatView() string {
 		switch tuiMsg.GetType() {
 		case "query":
 			coloredQuery := styles.specialText.Render(strings.Trim(tuiMsg.GetContent(), " \n"))
-			formatted_message = fmt.Sprintf("Searching: %s", coloredQuery)
+			formatted_message = fmt.Sprintf("\nSearching: %s\n", coloredQuery)
 		default:
 			if tuiMsg.GetRole() != "system" || m.tui_config.Debug {
 				formatted_message = fmt.Sprintf("[%s]: %s", formatted_role, markdown_content)
@@ -327,7 +335,12 @@ func prepareChatClient(config TUIConfig, chatClient *api.ChatClient) error {
 			return err
 		}
 	} else {
-		err := chatClient.SendSystemMessage(config.DiscoveryMessage)
+		systemTUIMessage := newTUIMessage("system", "system", config.DiscoveryMessage)
+		systemTUIMessageJSON, err := systemTUIMessage.ToJSON()
+		if err != nil {
+			return err
+		}
+		err = chatClient.SendSystemMessage(systemTUIMessageJSON)
 		if err != nil {
 			return err
 		}
