@@ -268,36 +268,55 @@ func (m model) resolveLastMessage() error {
 
 func (m model) ChatView() string {
 	var s string
+
 	err := m.resolveLastMessage()
 	if err != nil {
 		m.err = err
 		return m.err.Error()
 	}
+
 	for _, msg := range m.ChatClient.GetMessages() {
-		tuiMsg, _ := processMessage(msg)
-		formatted_role := strings.ToUpper(tuiMsg.GetRole())
-		markdown_renderer, _ := glamour.NewTermRenderer(glamour.WithAutoStyle())
-		markdown_content, _ := markdown_renderer.Render(tuiMsg.GetContent())
-		var formatted_message string
-		switch tuiMsg.GetType() {
-		case "query":
-			coloredQuery := styles.specialText.Render(strings.Trim(tuiMsg.GetContent(), " \n"))
-			formatted_message = fmt.Sprintf("\nSearching: %s\n", coloredQuery)
-		default:
-			if tuiMsg.GetRole() != "system" || m.tui_config.Debug {
-				formatted_message = fmt.Sprintf("[%s]: %s", formatted_role, markdown_content)
-			}
+		if msg.GetRole() != "system" || m.tui_config.Debug {
+			tuiMsg, _ := processMessage(msg)
+			formattedMessage := m.formatMessage(tuiMsg)
+			s += styles.secondary.Render(formattedMessage)
+			s += "\n"
 		}
-		s += styles.secondary.Render(formatted_message)
-		s += "\n"
 	}
+
 	s += styles.secondary.Render("[USER]: ")
 	s += styles.primary.Render(m.input.View())
+
 	if !m.input.Focused() {
 		m.viewport.SetContent(s)
 		return m.viewport.View()
 	}
+
 	return s
+}
+
+func (m model) formatMessage(tuiMsg tuiMessage) string {
+	if tuiMsg.GetType() == "query" {
+		return m.formatQueryMessage(tuiMsg)
+	}
+
+	return m.formatNonQueryMessage(tuiMsg)
+}
+
+func (m model) formatQueryMessage(tuiMsg tuiMessage) string {
+	coloredQuery := styles.specialText.Render(strings.Trim(tuiMsg.GetContent(), " \n"))
+	formatted_message := fmt.Sprintf("\nSearching: %s\n", coloredQuery)
+
+	return formatted_message
+}
+
+func (m model) formatNonQueryMessage(tuiMsg tuiMessage) string {
+	formatted_role := strings.ToUpper(tuiMsg.GetRole())
+	markdown_renderer, _ := glamour.NewTermRenderer(glamour.WithAutoStyle())
+	markdown_content, _ := markdown_renderer.Render(tuiMsg.GetContent())
+	formatted_message := fmt.Sprintf("[%s]: %s", formatted_role, markdown_content)
+
+	return formatted_message
 }
 
 func readTUIConfig() (TUIConfig, error) {
