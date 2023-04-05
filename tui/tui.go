@@ -155,16 +155,13 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		case key.Matches(msg, keybindings.Enter):
 			if m.input.Value() != "" {
-				messageToSend := tuiMessage{
-					Type:    "message",
-					Content: m.input.Value(),
-					Role:    "user",
-				}
-				jsonMessage, err := json.Marshal(messageToSend)
+				messageToSend := newTUIMessage("message", "user", m.input.Value())
+				jsonMessage, err := (&messageToSend).ToJSON()
 				if err != nil {
 					m.err = err
+					return m, nil
 				}
-				m.ChatClient.SendUserMessage(string(jsonMessage))
+				m.ChatClient.SendUserMessage(jsonMessage)
 				m.input.SetValue("")
 			}
 		case key.Matches(msg, keybindings.Save):
@@ -245,10 +242,40 @@ func processMessage(msg api.ChatMessage) (tuiMessage, error) {
 	return tuiMsg, nil
 }
 
+func (m model) repromptAI(prompt string) error {
+	currentMessages := m.ChatClient.GetMessages()
+	messagesBeforeLast := currentMessages[:len(currentMessages)-1]
+	err := m.ChatClient.SendSystemMessage(prompt)
+	if err != nil {
+		return err
+	}
+	newMessage := m.ChatClient.GetLastMessage()
+	slicedMessages := append(messagesBeforeLast, newMessage)
+	m.ChatClient.SetMessages(slicedMessages)
+	return nil
+}
+
 func (m model) resolveLastMessage() error {
 	lastMessage := m.ChatClient.GetLastMessage()
 	if lastMessage.GetRole() == "assistant" {
 		AIMessage, err := lastMessage.ToAIMessage()
+		content := AIMessage.GetContent()
+		// If the chat model doesn't obey the JSON format, Solus will reprompt the AI until it does.
+		// The reprompt messages and the offending message are deleted from the chat history to avoid clutter.
+		for content == "" {
+			messageToReprompt := newTUIMessage("reprompt", "system", "Send the last message again wrapped in JSON.")
+			jsonMessageToReprompt, err := (&messageToReprompt).ToJSON()
+			if err != nil {
+				return err
+			}
+			m.repromptAI(jsonMessageToReprompt)
+			lastMessage = m.ChatClient.GetLastMessage()
+			AIMessage, err = lastMessage.ToAIMessage()
+			if err != nil {
+				return err
+			}
+			content = AIMessage.GetContent()
+		}
 		if err != nil {
 			return err
 		}
@@ -305,7 +332,7 @@ func (m model) formatMessage(tuiMsg tuiMessage) string {
 
 func (m model) formatQueryMessage(tuiMsg tuiMessage) string {
 	coloredQuery := styles.specialText.Render(strings.Trim(tuiMsg.GetContent(), " \n"))
-	formatted_message := fmt.Sprintf("\nSearching: %s\n", coloredQuery)
+	formatted_message := fmt.Sprintf("Searching: %s\n\n", coloredQuery)
 
 	return formatted_message
 }
@@ -395,6 +422,11 @@ func Run() (tea.Model, error) {
 	if err != nil {
 		return nil, err
 	}
+	f, err := tea.LogToFile("debug.log", "debug")
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
 	p := tea.NewProgram(m, tea.WithAltScreen(), tea.WithMouseCellMotion())
 	return p.Run()
 }
