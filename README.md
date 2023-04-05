@@ -1,6 +1,8 @@
 # Solus
 An `AI-assisted` project generator.
 
+![terminal view](assets/readme_images/solus_terminal_view_top.png)
+
 ## Mission
 To automate the process of creating a project from requirements.
 
@@ -13,7 +15,7 @@ tasks and focus on high-level tasks like architecture, design, and testing.
 For a more in-depth breakdown of the requirements and components, see our [specification](SPECIFICATION.md).
 All of our submitted external proposals are in the [proposals](proposals/) folder. 
 
-We just submitted a [proposal](proposals/google_cloud.pdf) to [Google Cloud's Research Credits program](https://edu.google.com/intl/ALL_us/programs/credits/research/)
+We just submitted a [proposal](assets/proposals/google_cloud.pdf) to [Google Cloud's Research Credits program](https://edu.google.com/intl/ALL_us/programs/credits/research/)
 for cloud credits, or money we can use towards Google Cloud services.
 
 ## Requirements
@@ -46,7 +48,12 @@ ensure that the code is up to standard. The developer will be able to make
 requests to Solus to change the generated code, and Solus will make the 
 changes and re-run the tests.
 
-## Task List
+## Current Status
+We are still building the MVP. We finished the interface (shown below), added chat functionality, and integrated with different outside data sources. The querying functionality is currently limited to Google search results, though this will change as we iterate on the Query API.
+
+![terminal view](assets/readme_images/solus_terminal_view_top.png)
+![terminal view with search](assets/readme_images/solus_terminal_view_search.png)
+### Task List
 This task list is for the Minimum Viable Product (MVP) of Solus. The MVP will 
 meet the bare minimum of the requirements listed above and in the specification.
 The tasks are being completed according to the [Tracer Bullet Philosophy](https://wiki.c2.com/?TracerBullets)
