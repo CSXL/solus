@@ -1,13 +1,30 @@
-# Welcome to Solus! (CONTRIBUTING.md)
+# Welcome to Solus!
 Thank you for joining us on this journey to automating the development process.
 
-This document contains our project's purpose, values, and instructions/guidelines for contributing to the project.
+## Table of Contents
+- [Welcome to Solus!](#welcome-to-solus)
+  - [Table of Contents](#table-of-contents)
+  - [Executive Summary](#executive-summary)
+    - [Mission](#mission)
+    - [AI Principles](#ai-principles)
+  - [Building, Running, Testing, and Debugging](#building-running-testing-and-debugging)
+    - [Environment Secrets](#environment-secrets)
+    - [TUI Configuration](#tui-configuration)
+    - [Building and Running the Project](#building-and-running-the-project)
+    - [Running Tests](#running-tests)
+    - [Debugging](#debugging)
+  - [Contributing](#contributing)
+    - [Code of Conduct](#code-of-conduct)
+    - [Contributing Guidelines](#contributing-guidelines)
+    - [Types of Contributions](#types-of-contributions)
+    - [How to Contribute](#how-to-contribute)
+  - [Thank You!](#thank-you)
 
 ## Executive Summary
-## Mission
+### Mission
 To automate the process of creating a project from requirements.
 
-## AI Principles
+### AI Principles
 These are guiding principles specific to the Solus project.
 For CSX Labs' core values please refer to our [Business Plan](https://docs.google.com/document/d/1PhPFI1YXRd-XHMvfvRZhFwnqzzdXLTcpo0Kmbw803-I/edit?usp=sharing).
 

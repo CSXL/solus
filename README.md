@@ -13,6 +13,9 @@ To automate the process of creating a project from requirements.
 
 ## Resources
 For a more in-depth breakdown of the requirements and components, see our [specification](SPECIFICATION.md).
+
+Interested in contributing or testing this project? Check out our [contributing guide](CONTRIBUTING.md).
+
 All of our submitted external proposals are in the [proposals](proposals/) folder. 
 
 We just submitted a [proposal](assets/proposals/google_cloud.pdf) to [Google Cloud's Research Credits program](https://edu.google.com/intl/ALL_us/programs/credits/research/)
