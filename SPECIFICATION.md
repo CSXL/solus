@@ -50,6 +50,11 @@ Response Format:
 }
 ```
 
+### Context Engine
+Language models are limited by their context. The Context Engine will store task-specific dynamic context for different tasks. 
+
+Example: If the Debugging API is trying to fix a bug and uses the Query API to get documentation, the Context Engine will store the context of the bug and the documentation that was requested, as well as excerpts from relevant files. The language model will then use this context to fix the bug.
+
 ### Interface
 A CLI tool that collects requirements from the developer in a conversational 
 manner and then generates a project from those requirements. The tool will call
