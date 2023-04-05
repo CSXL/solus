@@ -6,7 +6,7 @@
 
 An `AI-assisted` project generator.
 
-![terminal view](assets/readme_images/solus_terminal_view_top.png)
+![terminal view](assets/readme_images/solus_header.png)
 
 ## Mission
 To automate the process of creating a project from requirements.
