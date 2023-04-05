@@ -1,7 +1,7 @@
 # Solus
-![made by CSX Labs](https://csxlabs.org/badges/made_by_csx_labs.svg)
-![license](https://img.shields.io/github/license/CSXL/solus?style=for-the-badge)
-![stage](https://img.shields.io/badge/stage-developing%20MVP-yellowgreen?style=for-the-badge)
+[![made by CSX Labs](https://csxlabs.org/badges/made_by_csx_labs.svg)](https://csxlabs.org)
+[![license](https://img.shields.io/github/license/CSXL/solus?style=for-the-badge)](LICENSE)
+[![stage](https://img.shields.io/badge/stage-developing%20MVP-yellowgreen?style=for-the-badge)](#current-status)
 
 
 An `AI-assisted` project generator.
