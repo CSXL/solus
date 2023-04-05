@@ -5,6 +5,10 @@
 *.so
 *.dylib
 
+# Go Debugging
+__debug_bin
+debug.log
+
 # Test binary, built with `go test -c`
 *.test
 
