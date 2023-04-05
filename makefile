@@ -14,6 +14,11 @@ install:
 	@go install
 	@echo "Done."
 
+test:
+	@echo "Testing..."
+	@go test ./...
+	@echo "Done."
+
 clean:
 	@echo "Cleaning..."
 	@rm -f solus.out

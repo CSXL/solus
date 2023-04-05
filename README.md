@@ -56,6 +56,7 @@ We are still building the MVP. We finished the interface (shown below), added ch
 
 ![terminal view](assets/readme_images/solus_terminal_view_top.png)
 ![terminal view with search](assets/readme_images/solus_terminal_view_search.png)
+
 ### Task List
 This task list is for the Minimum Viable Product (MVP) of Solus. The MVP will 
 meet the bare minimum of the requirements listed above and in the specification.
