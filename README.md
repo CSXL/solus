@@ -3,10 +3,25 @@
 [![license](https://img.shields.io/github/license/CSXL/solus?style=for-the-badge)](LICENSE)
 [![stage](https://img.shields.io/badge/stage-developing%20MVP-yellowgreen?style=for-the-badge)](#current-status)
 
-
 An `AI-assisted` project generator.
 
 ![terminal view](assets/readme_images/solus_header.png)
+
+## Table of Contents
+- [Solus](#solus)
+  - [Table of Contents](#table-of-contents)
+  - [Mission](#mission)
+  - [Resources](#resources)
+  - [Overview](#overview)
+  - [Why?](#why)
+  - [Requirements](#requirements)
+    - [Chat](#chat)
+    - [Querying (Query API)](#querying-query-api)
+    - [Project Planning](#project-planning)
+    - [Coding \& Debugging](#coding--debugging)
+    - [Context Engine](#context-engine)
+  - [Current Status](#current-status)
+    - [Task List](#task-list)
 
 ## Mission
 To automate the process of creating a project from requirements.
@@ -18,8 +33,8 @@ Interested in contributing or testing this project? Check out our [contributing 
 
 All of our submitted external proposals are in the [proposals](proposals/) folder. 
 
-We just submitted a [proposal](assets/proposals/google_cloud.pdf) to [Google Cloud's Research Credits program](https://edu.google.com/intl/ALL_us/programs/credits/research/)
-for cloud credits, or money we can use towards Google Cloud services.
+**Proposal Updates:** We just submitted a [proposal](assets/proposals/google_cloud.pdf) to [Google Cloud's Research Credits program](https://edu.google.com/intl/ALL_us/programs/credits/research/)
+for cloud credits, or money we can use towards Google Cloud services. We also reached out to OpenAI (no full proposal, just an email) and Microsoft to see if they could grant us cloud credits. We are working with Microsoft Partners in our region to explore this further. We'll keep you updated on our progress.
 
 ## Overview
 Solus aims to bridge gaps between AI and humans in software development by allowing language models to interface with the internet and filesystem, opening their contributions to developers on a wider scale. While Solus codes and debugs, developers can focus on higher-level tasks like architecture, design, and requirements. Solus will be able to generate an entire project from a conversation with the developer.
