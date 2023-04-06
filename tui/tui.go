@@ -7,7 +7,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/CSXL/solus/ai"
+	ai "github.com/CSXL/solus/ai/openai"
 	"github.com/CSXL/solus/config"
 	"github.com/CSXL/solus/query"
 	"github.com/CSXL/solus/query/search_clients"
