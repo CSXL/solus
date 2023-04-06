@@ -84,38 +84,4 @@ The idea is that we will try to slice through the different parts of the project
 to provide a simple set of presentable features that can we can continue to 
 build upon.
 
-- [ ] Serialization
-  - [x] Implement YAML serialization
-  - [ ] Implement JSON serialization
-- [ ] Query API
-  - [ ] Implement Data Gathering
-    - [ ] Implement Colly for scraping
-    - [x] Implement Google Custom Search API for general searching
-    - [ ] Implement StackExchange API for debugging
-    - [x] Implement Wikipedia API for getting topic overviews
-  - [ ] Implement AI Processing
-    - [ ] Implement gpt-3.5-turbo for extracting relevant information from collected data
-    - [ ] Implement gpt-3.5-turbo for serializing data into a standardized format
-    - [ ] Implement verification of AI output
-- [x] Interface
-  - [x] Implement CLI
-    - [x] Implement [Bubbletea](https://github.com/charmbracelet/bubbletea) for the TUI
-    - [x] Implement [Cobra](https://github.com/spf13/cobra) for command management
-  - [x] Implement conversations
-    - [x] Implement and wrap the [gpt-3.5-turbo](https://openai.com/blog/introducing-chatgpt-and-whisper-apis) language model
-  - [x] Implement configuration with [Viper](https://github.com/spf13/viper)
-- [ ] Requirements API
-  - [ ] Implement gpt-3.5-turbo for processing requirements from conversations
-- [ ] Outline API
-  - [ ] Implement gpt-3.5-turbo for generating project outline
-    - [ ] Implement gpt-3.5-turbo for revising project outline
-  - [ ] Implement file and directory generation
-- [ ] Dependency API
-  - [ ] Implement Query API for resolving dependencies and their documentation
-  - [ ] Implement generation of dependency names and documentation
-- [ ] Code API
-  - [ ] Implement gpt-3.5-turbo for generating test stubs, code, and comments
-    - [ ] Implement context-aware code generation and comments that align with the requirements and dependencies
-  - [ ] Implement refactoring of code and incorporation of code standards
-- [ ] Debugging API
-  - [ ] TODO: Figure out how to implement this.
+Please check our our GitHub [Project Page](https://github.com/orgs/CSXL/projects/2) for the task list and roadmap.
