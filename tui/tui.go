@@ -7,7 +7,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/CSXL/solus/api"
+	"github.com/CSXL/solus/ai"
 	"github.com/CSXL/solus/config"
 	"github.com/CSXL/solus/query"
 	"github.com/CSXL/solus/query/search_clients"
@@ -101,7 +101,7 @@ type TUIConfig struct {
 }
 
 type model struct {
-	ChatClient  *api.ChatClient
+	ChatClient  *ai.ChatClient
 	QueryClient *query.QueryBuilder
 	screen      screen
 	input       textinput.Model
@@ -118,7 +118,7 @@ func NewModel(tui_config TUIConfig, query_client *query.QueryBuilder) model {
 	ti.CharLimit = 256
 	ti.Width = 80
 	return model{
-		ChatClient:  api.NewChatClient(tui_config.APIKey),
+		ChatClient:  ai.NewChatClient(tui_config.APIKey),
 		input:       ti,
 		viewport:    viewport.New(80, 20),
 		tui_config:  tui_config,
@@ -228,7 +228,7 @@ func (tmsg *tuiMessage) ToJSON() (string, error) {
 	return string(jsonMessage), nil
 }
 
-func processMessage(msg api.ChatMessage) (tuiMessage, error) {
+func processMessage(msg ai.ChatMessage) (tuiMessage, error) {
 	var tuiMsg tuiMessage
 	if msg.GetRole() == "assistant" || msg.GetRole() == "user" {
 		AIMessage, err := msg.ToAIMessage()
@@ -374,7 +374,7 @@ func loadTUIConfig() (TUIConfig, error) {
 	return tui_config, nil
 }
 
-func prepareChatClient(config TUIConfig, chatClient *api.ChatClient) error {
+func prepareChatClient(config TUIConfig, chatClient *ai.ChatClient) error {
 	if config.LoadMessagesFromFile {
 		err := chatClient.LoadMessages(config.SavedMessagesFile)
 		if err != nil {
