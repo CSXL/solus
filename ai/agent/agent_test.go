@@ -195,6 +195,30 @@ func TestStop(t *testing.T) {
 	assert.False(t, agent.IsRunning())
 }
 
+func TestStopWithMultipleTasks(t *testing.T) {
+	agent := NewAgent("testName", "testAgentType", nil)
+	agent.Start()
+	task := NewAgentTask("test", testTaskType, testTaskHandlerWithResult)
+	for i := 0; i < 10; i++ {
+		err := agent.AddTask(task)
+		assert.Nil(t, err)
+	}
+	agent.Stop()
+	assert.False(t, agent.IsRunning())
+}
+
+func TestStopWithSequentialTasks(t *testing.T) {
+	agent := NewAgent("testName", "testAgentType", nil)
+	agent.Start()
+	task := NewAgentTask("test", testSequentialTaskType, testTaskHandlerWithResult)
+	for i := 0; i < 10; i++ {
+		err := agent.AddTask(task)
+		assert.Nil(t, err)
+	}
+	agent.Stop()
+	assert.False(t, agent.IsRunning())
+}
+
 func TestSequentialTaskCompletionOrder(t *testing.T) {
 	agent := NewAgent("testAgent", "testAgentType", nil)
 	agent.Start()
