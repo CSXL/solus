@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -43,7 +44,7 @@ func TestNewAgentTask(t *testing.T) {
 	task := NewAgentTask("test", testTaskType, testTaskHandlerWithResult)
 	assert.Equal(t, "test", task.GetName())
 	assert.Equal(t, testTaskType, task.GetType())
-	assert.Equal(t, false, task.IsSequential())
+	assert.False(t, task.IsSequential())
 }
 
 func TestAddTask(t *testing.T) {
@@ -75,7 +76,7 @@ func TestAddSequentialTask(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestAddSequentialTasks(t *testing.T) {
+func TestAddMultipleSequentialTasks(t *testing.T) {
 	agent := NewAgent("testName", "testAgentType", nil)
 	agent.Start()
 	defer agent.Kill()
@@ -95,7 +96,7 @@ func TestTaskWithResult(t *testing.T) {
 	assert.Nil(t, err)
 	result := task.AwaitCompletion()
 	assert.Equal(t, "test", result)
-	assert.Equal(t, true, task.IsCompleted())
+	assert.True(t, task.IsCompleted())
 }
 
 func TestSequentialTaskWithResult(t *testing.T) {
@@ -107,7 +108,7 @@ func TestSequentialTaskWithResult(t *testing.T) {
 	assert.Nil(t, err)
 	result := task.AwaitCompletion()
 	assert.Equal(t, "test", result)
-	assert.Equal(t, true, task.IsCompleted())
+	assert.True(t, task.IsCompleted())
 }
 
 func TestTaskWithKill(t *testing.T) {
@@ -118,7 +119,7 @@ func TestTaskWithKill(t *testing.T) {
 	err := agent.AddTask(task)
 	assert.Nil(t, err)
 	task.Kill()
-	assert.Equal(t, true, task.WasKilled())
+	assert.True(t, task.WasKilled())
 }
 
 func TestSequentialTaskWithKill(t *testing.T) {
@@ -129,7 +130,7 @@ func TestSequentialTaskWithKill(t *testing.T) {
 	err := agent.AddTask(task)
 	assert.Nil(t, err)
 	task.Kill()
-	assert.Equal(t, true, task.WasKilled())
+	assert.True(t, task.WasKilled())
 }
 
 func TestMischeviousTaskWithKill(t *testing.T) {
@@ -140,5 +141,77 @@ func TestMischeviousTaskWithKill(t *testing.T) {
 	err := agent.AddTask(task)
 	assert.Nil(t, err)
 	task.Kill()
-	assert.Equal(t, true, task.WasKilled())
+	assert.True(t, task.WasKilled())
+}
+
+func TestMischeviousSequentialTaskWithKill(t *testing.T) {
+	agent := NewAgent("testName", "testAgentType", nil)
+	agent.Start()
+	defer agent.Kill()
+	task := NewAgentTask("test", testSequentialTaskType, testTaskHandlerWaitForever)
+	err := agent.AddTask(task)
+	assert.Nil(t, err)
+	task.Kill()
+	assert.True(t, task.WasKilled())
+}
+
+func TestKill(t *testing.T) {
+	agent := NewAgent("testName", "testAgentType", nil)
+	agent.Start()
+	task := NewAgentTask("test", testTaskType, testTaskHandlerWaitKill)
+	err := agent.AddTask(task)
+	assert.Nil(t, err)
+	agent.Kill()
+	assert.False(t, agent.IsRunning())
+}
+
+func TestKillWithTasks(t *testing.T) {
+	agent := NewAgent("testName", "testAgentType", nil)
+	agent.Start()
+	task := NewAgentTask("test", testTaskType, testTaskHandlerWaitKill)
+	err := agent.AddTask(task)
+	assert.Nil(t, err)
+	agent.Kill()
+	assert.False(t, agent.IsRunning())
+}
+
+func TestKillWithSequentialTasks(t *testing.T) {
+	agent := NewAgent("testName", "testAgentType", nil)
+	agent.Start()
+	task := NewAgentTask("test", testSequentialTaskType, testTaskHandlerWaitKill)
+	err := agent.AddTask(task)
+	assert.Nil(t, err)
+	agent.Kill()
+	assert.False(t, agent.IsRunning())
+}
+
+func TestSequentialTaskCompletionOrder(t *testing.T) {
+	agent := NewAgent("testAgent", "testAgentType", nil)
+	agent.Start()
+	defer agent.Kill()
+	handlerSignal := make(chan bool)
+	testerSignal := make(chan bool)
+	testHandler := func(kill chan bool) interface{} {
+		handlerSignal <- true
+		<-testerSignal
+		return nil
+	}
+	var taskList []*AgentTask
+	for i := 0; i < 10; i++ {
+		taskName := fmt.Sprintf("task#%d", i)
+		task := NewAgentTask(taskName, testSequentialTaskType, testHandler)
+		err := agent.AddTask(task)
+		assert.Nil(t, err)
+		taskList = append(taskList, task)
+	}
+	for _, task := range taskList {
+		<-handlerSignal
+		_, inRunningTasks := agent.GetRunningTasks()[task.GetID()]
+		assert.Truef(t, inRunningTasks, "Task <ID: %s, Name: %s> not in running tasks <%s>", task.GetID(), task.GetName(), fmt.Sprint(agent.GetRunningTasks()))
+		testerSignal <- true
+		task.AwaitCompletion()
+		assert.True(t, task.IsCompleted())
+		_, inCompletedTasks := agent.GetCompletedTasks()[task.GetID()]
+		assert.True(t, inCompletedTasks)
+	}
 }

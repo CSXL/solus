@@ -2,8 +2,11 @@ package agent
 
 import (
 	"fmt"
+	"io"
+	"log"
 	"sync"
 
+	"github.com/google/logger"
 	"github.com/google/uuid"
 )
 
@@ -17,6 +20,7 @@ type IAgent interface {
 	GetName() string
 	GetType() string
 	GetConfig() interface{}
+	IsRunning() bool
 	GetRunningTasks() AgentTaskMap
 	GetCompletedTasks() AgentTaskMap
 	GetKilledTasks() AgentTaskMap
@@ -53,6 +57,7 @@ type Agent struct {
 	name                 string                      // Agent human-readable name
 	_type                string                      // Agent type
 	config               interface{}                 // Agent configuration
+	isRunning            bool                        // Agent running state
 	completedTasks       AgentTaskMap                // Agent completed tasks
 	runningTasks         AgentTaskMap                // Agent running tasks
 	killedTasks          AgentTaskMap                // Agent killed tasks
@@ -71,7 +76,10 @@ type Agent struct {
 // agentType: Agent type
 // config: Agent configuration
 func NewAgent(name string, agentType string, config interface{}) *Agent {
+	logger.Init("agent", true, false, io.Discard)
+	logger.SetFlags(log.LUTC)
 	id := generateUUID()
+	isRunning := false
 	routines := &sync.WaitGroup{}
 	taskLoopRoutines := &sync.WaitGroup{}
 	completedTasks := make(AgentTaskMap)
@@ -86,6 +94,7 @@ func NewAgent(name string, agentType string, config interface{}) *Agent {
 		name:                 name,
 		_type:                agentType,
 		config:               config,
+		isRunning:            isRunning,
 		routines:             routines,
 		taskLoopRoutines:     taskLoopRoutines,
 		runningTasks:         runningTasks,
@@ -114,6 +123,10 @@ func (a *Agent) GetConfig() interface{} {
 	return a.config
 }
 
+func (a *Agent) IsRunning() bool {
+	return a.isRunning
+}
+
 func (a *Agent) GetRunningTasks() AgentTaskMap {
 	return a.runningTasks
 }
@@ -138,6 +151,7 @@ func (a *Agent) AddTask(task IAgentTask) error {
 
 func (a *Agent) addSequentialTask(task IAgentTask) error {
 	if !a.taskExists(task) {
+		logger.Infof("Adding sequential task <ID: %s, Name: %s> to agent <ID: %s, Name: %s>", task.GetID(), task.GetName(), a.GetID(), a.GetName())
 		taskType := task.GetType()
 		_, sequentialTaskQueueExists := a.sequentialTaskQueues[taskType]
 		if !sequentialTaskQueueExists {
@@ -150,11 +164,12 @@ func (a *Agent) addSequentialTask(task IAgentTask) error {
 		a.sequentialTaskQueues[taskType] <- task
 		return nil
 	}
-	return fmt.Errorf("task already exists with <ID: %s>", task.GetID())
+	return fmt.Errorf("task already exists with <ID: %s> on agent <ID: %s>", task.GetID(), a.GetID())
 }
 
 func (a *Agent) addStandardTask(task IAgentTask) error {
 	if !a.taskExists(task) {
+		logger.Infof("Adding standard task <ID: %s, Name: %s> to agent <ID: %s, Name: %s>", task.GetID(), task.GetName(), a.GetID(), a.GetName())
 		a.taskQueue <- task
 		return nil
 	}
@@ -189,15 +204,17 @@ func (a *Agent) executeTaskInBackground(task IAgentTask) {
 	a.runningTasks[task.GetID()] = &task
 	a.routines.Add(1)
 	go func() {
+		logger.Infof("Executing task <ID: %s, Name: %s> on agent <ID: %s, Name: %s>", task.GetID(), task.GetName(), a.GetID(), a.GetName())
 		task.Execute(func() {
 			a.routines.Done()
 			delete(a.runningTasks, task.GetID())
 			if task.WasKilled() {
-				a.completedTasks[task.GetID()] = &task
-			} else {
 				a.killedTasks[task.GetID()] = &task
+			} else {
+				a.completedTasks[task.GetID()] = &task
 			}
 		})
+		logger.Infof("Finished executing task <ID: %s, Name: %s> on agent <ID: %s, Name: %s>", task.GetID(), task.GetName(), a.GetID(), a.GetName())
 	}()
 }
 
@@ -210,6 +227,7 @@ func (a *Agent) runTaskLoop(wg *sync.WaitGroup) {
 	for {
 		select {
 		case task := <-a.taskQueue:
+			logger.Infof("Running standard task <ID: %s, Name: %s> on agent <ID: %s, Name: %s>", task.GetID(), task.GetName(), a.GetID(), a.GetName())
 			a.runTaskInBackground(task)
 		case <-a.killChannel:
 			close(a.taskQueue)
@@ -222,7 +240,9 @@ func (a *Agent) runSequentialTaskLoop(taskType AgentTaskType, wg *sync.WaitGroup
 	for {
 		select {
 		case task := <-a.sequentialTaskQueues[taskType]:
+			logger.Infof("Running sequential task <ID: %s, Name: %s> on agent <ID: %s, Name: %s>", task.GetID(), task.GetName(), a.GetID(), a.GetName())
 			a.runTask(task) // Runs the task blocking the task loop
+			logger.Infof("Finished sequential task <ID: %s, Name: %s> on agent <ID: %s, Name: %s>", task.GetID(), task.GetName(), a.GetID(), a.GetName())
 		case <-a.killChannel:
 			close(a.sequentialTaskQueues[taskType])
 			return
@@ -253,28 +273,37 @@ func (a *Agent) runSequentialTaskEventLoop(wg *sync.WaitGroup) {
 }
 
 func (a *Agent) Start() {
+	logger.Infof("Starting agent <ID: %s, Name: %s>", a.GetID(), a.GetName())
+	a.isRunning = true
 	var wg sync.WaitGroup
 	wg.Add(1)
 	go a.runTaskLoop(&wg)
 	wg.Add(1)
 	go a.runSequentialTaskEventLoop(&wg)
 	a.taskLoopRoutines = &wg
+	logger.Infof("Started agent <ID: %s, Name: %s>", a.GetID(), a.GetName())
 }
 
 func (a *Agent) Stop() {
+	logger.Infof("Stopping agent <ID: %s, Name: %s>", a.GetID(), a.GetName())
 	close(a.taskQueue)
 	for taskType := range a.sequentialTaskQueues {
 		close(a.sequentialTaskQueues[taskType])
 	}
 	a.taskLoopRoutines.Wait()
+	a.isRunning = false
+	logger.Infof("Stopped agent <ID: %s, Name: %s>", a.GetID(), a.GetName())
 }
 
 func (a *Agent) Kill() {
+	logger.Infof("Killing agent <ID: %s, Name: %s>", a.GetID(), a.GetName())
 	a.killChannel <- true
 	for task := range a.runningTasks {
 		(*a.runningTasks[task]).Kill()
 		a.killedTasks[task] = a.runningTasks[task]
 	}
+	a.isRunning = false
+	logger.Infof("Killed agent <ID: %s, Name: %s>", a.GetID(), a.GetName())
 }
 
 type AgentTaskType struct {
@@ -354,7 +383,6 @@ func (t *AgentTask) Execute(callback func()) {
 	t.result = result
 	callback()
 	t.isCompleted = true
-	t.completionChannel <- result
 }
 
 func (t *AgentTask) Kill() {
@@ -366,7 +394,9 @@ func (t *AgentTask) Kill() {
 }
 
 func (t *AgentTask) AwaitCompletion() interface{} {
-	return <-t.completionChannel
+	for !t.IsCompleted() {
+	}
+	return t.GetResult()
 }
 
 func (t *AgentTask) IsCompleted() bool {
