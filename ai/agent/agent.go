@@ -3,6 +3,8 @@ package agent
 import (
 	"fmt"
 	"sync"
+
+	"github.com/google/uuid"
 )
 
 type IAgent interface {
@@ -26,27 +28,10 @@ type IAgent interface {
 	Kill()
 }
 
-type AgentTaskType struct {
-	Type         string
-	IsSequential bool
-}
-
-type IAgentTask interface {
-	GetID() string
-	GetName() string
-	GetType() AgentTaskType
-	IsSequential() bool
-	GetChannel() chan interface{}
-	GetResult() interface{}
-	Execute(callback func())
-	Kill()
-	AwaitCompletion() interface{}
-	IsCompleted() bool
-}
-
 type AgentTaskMap map[string]*IAgentTask
 type AgentSequentialTaskQueueMap map[AgentTaskType]chan IAgentTask
 type Agent struct {
+	IAgent
 	id                   string                      // Agent ID
 	name                 string                      // Agent human-readable name
 	_type                string                      // Agent type
@@ -221,4 +206,97 @@ func (a *Agent) Kill() {
 	for task := range a.runningTasks {
 		(*a.runningTasks[task]).Kill()
 	}
+}
+
+type AgentTaskType struct {
+	Type         string
+	IsSequential bool
+}
+
+type IAgentTask interface {
+	GetID() string
+	GetName() string
+	GetType() AgentTaskType
+	IsSequential() bool
+	GetResult() interface{}
+	Execute(callback func())
+	Kill()
+	AwaitCompletion() interface{}
+	IsCompleted() bool
+}
+
+type handlerFunction func(kill chan bool) interface{}
+type AgentTask struct {
+	IAgentTask
+	id          string
+	name        string
+	_type       AgentTaskType
+	channel     chan interface{}
+	result      interface{}
+	isCompleted bool
+	handler     handlerFunction
+	kill        chan bool
+}
+
+func NewAgentTask(name string, taskType AgentTaskType, handler handlerFunction) *AgentTask {
+	id := generateUUID()
+	channel := make(chan interface{})
+	result := make(chan interface{})
+	kill := make(chan bool)
+	isCompleted := false
+	return &AgentTask{
+		id:          id,
+		name:        name,
+		_type:       taskType,
+		channel:     channel,
+		result:      result,
+		kill:        kill,
+		isCompleted: isCompleted,
+		handler:     handler,
+	}
+}
+
+func generateUUID() string {
+	uuid := uuid.New()
+	return uuid.String()
+}
+
+func (t *AgentTask) GetID() string {
+	return t.id
+}
+
+func (t *AgentTask) GetName() string {
+	return t.name
+}
+
+func (t *AgentTask) GetType() AgentTaskType {
+	return t._type
+}
+
+func (t *AgentTask) IsSequential() bool {
+	return t._type.IsSequential
+}
+
+func (t *AgentTask) GetResult() interface{} {
+	return t.result
+}
+
+func (t *AgentTask) Execute(callback func()) {
+	result := t.handler(t.kill)
+	t.result = result
+	callback()
+	t.isCompleted = true
+	t.channel <- result
+}
+
+func (t *AgentTask) Kill() {
+	t.kill <- true
+}
+
+func (t *AgentTask) AwaitCompletion() interface{} {
+	return <-t.channel
+}
+
+func (t *AgentTask) IsCompleted() bool {
+	return t.isCompleted
 }
