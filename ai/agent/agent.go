@@ -66,8 +66,9 @@ type Agent struct {
 	taskQueue            chan IAgentTask             // Agent general task queue
 	sequentialTaskQueues AgentSequentialTaskQueueMap // Agent queues for sequential tasks
 	sequentialTaskEvents agentSequentialTaskEvents   // Agent events for sequential tasks
-	routines             *sync.WaitGroup             // Waitgroup for running tasks
-	taskLoopRoutines     *sync.WaitGroup             // Waitgroup for task loop
+	routines             sync.WaitGroup              // Waitgroup for running tasks
+	taskLoopRoutines     sync.WaitGroup              // Waitgroup for task loop
+	taskLoopMutex        sync.Mutex                  // Mutex for task loop
 	killChannel          chan bool                   // Channel to kill agent
 }
 
@@ -83,8 +84,6 @@ func NewAgent(name string, agentType string, config interface{}) *Agent {
 	logger.SetFlags(log.LUTC)
 	id := generateUUID()
 	isRunning := false
-	routines := &sync.WaitGroup{}
-	taskLoopRoutines := &sync.WaitGroup{}
 	completedTasks := make(AgentTaskMap)
 	runningTasks := make(AgentTaskMap)
 	killedTasks := make(AgentTaskMap)
@@ -99,13 +98,14 @@ func NewAgent(name string, agentType string, config interface{}) *Agent {
 		_type:                agentType,
 		config:               config,
 		isRunning:            isRunning,
-		routines:             routines,
-		taskLoopRoutines:     taskLoopRoutines,
+		routines:             sync.WaitGroup{},
+		taskLoopRoutines:     sync.WaitGroup{},
 		runningTasks:         runningTasks,
 		completedTasks:       completedTasks,
 		killedTasks:          killedTasks,
 		taskQueue:            taskQueue,
 		sequentialTaskQueues: sequentialTaskQueues,
+		taskLoopMutex:        sync.Mutex{},
 		sequentialTaskEvents: sequentialTaskEvents,
 		killChannel:          kill,
 	}
@@ -206,11 +206,11 @@ func (a *Agent) runTask(task IAgentTask) error {
 
 func (a *Agent) executeTaskInBackground(task IAgentTask) {
 	a.runningTasks[task.GetID()] = &task
-	a.routines.Add(1)
+	a.incrementTaskRoutines()
 	go func() {
 		logger.Infof("Executing task <ID: %s, Name: %s> on agent <ID: %s, Name: %s>", task.GetID(), task.GetName(), a.GetID(), a.GetName())
 		task.Execute(func() {
-			a.routines.Done()
+			a.decrementTaskRoutines()
 			delete(a.runningTasks, task.GetID())
 			if task.WasKilled() {
 				a.killedTasks[task.GetID()] = &task
@@ -226,11 +226,46 @@ func (a *Agent) AwaitAllTasks() {
 	a.routines.Wait()
 }
 
-func (a *Agent) runTaskLoop(wg *sync.WaitGroup) {
-	defer wg.Done()
+func (a *Agent) lockTaskLoop() {
+	a.taskLoopMutex.Lock()
+}
+
+func (a *Agent) unlockTaskLoop() {
+	a.taskLoopMutex.Unlock()
+}
+
+func (a *Agent) incrementTaskLoopRoutines() {
+	a.lockTaskLoop()
+	a.taskLoopRoutines.Add(1)
+	a.unlockTaskLoop()
+}
+
+func (a *Agent) decrementTaskLoopRoutines() {
+	a.lockTaskLoop()
+	a.taskLoopRoutines.Done()
+	a.unlockTaskLoop()
+}
+
+func (a *Agent) incrementTaskRoutines() {
+	a.lockTaskLoop()
+	a.routines.Add(1)
+	a.unlockTaskLoop()
+}
+
+func (a *Agent) decrementTaskRoutines() {
+	a.lockTaskLoop()
+	a.routines.Done()
+	a.unlockTaskLoop()
+}
+
+func (a *Agent) runTaskLoop() {
+	defer a.decrementTaskLoopRoutines()
 	for {
 		select {
-		case task := <-a.taskQueue:
+		case task, ok := <-a.taskQueue:
+			if !ok {
+				return
+			}
 			logger.Infof("Running standard task <ID: %s, Name: %s> on agent <ID: %s, Name: %s>", task.GetID(), task.GetName(), a.GetID(), a.GetName())
 			a.runTaskInBackground(task)
 		case <-a.killChannel:
@@ -239,11 +274,14 @@ func (a *Agent) runTaskLoop(wg *sync.WaitGroup) {
 		}
 	}
 }
-func (a *Agent) runSequentialTaskLoop(taskType AgentTaskType, wg *sync.WaitGroup) {
-	defer wg.Done()
+func (a *Agent) runSequentialTaskLoop(taskType AgentTaskType) {
+	defer a.decrementTaskLoopRoutines()
 	for {
 		select {
-		case task := <-a.sequentialTaskQueues[taskType]:
+		case task, ok := <-a.sequentialTaskQueues[taskType]:
+			if !ok {
+				return
+			}
 			logger.Infof("Running sequential task <ID: %s, Name: %s> on agent <ID: %s, Name: %s>", task.GetID(), task.GetName(), a.GetID(), a.GetName())
 			a.runTask(task) // Runs the task blocking the task loop
 			logger.Infof("Finished sequential task <ID: %s, Name: %s> on agent <ID: %s, Name: %s>", task.GetID(), task.GetName(), a.GetID(), a.GetName())
@@ -254,24 +292,28 @@ func (a *Agent) runSequentialTaskLoop(taskType AgentTaskType, wg *sync.WaitGroup
 	}
 }
 
-func (a *Agent) runSequentialTaskEventLoop(wg *sync.WaitGroup) {
-	defer wg.Done()
+func (a *Agent) runSequentialTaskEventLoop() {
+	defer a.decrementTaskLoopRoutines()
 	for {
 		select {
-		case eventType := <-a.sequentialTaskEvents:
+		case eventType, ok := <-a.sequentialTaskEvents:
+			if !ok {
+				return
+			}
 			switch eventType.agentSequentialTaskEvent {
 			case agentSequentialTaskEventNewType:
-				wg.Add(1)
+				a.incrementTaskLoopRoutines()
 				taskType := AgentTaskType{
 					Type:         eventType.string,
 					IsSequential: true,
 				}
-				go a.runSequentialTaskLoop(taskType, wg)
+				go a.runSequentialTaskLoop(taskType)
 			}
 		case <-a.killChannel:
 			for taskType := range a.sequentialTaskQueues {
 				close(a.sequentialTaskQueues[taskType])
 			}
+			close(a.sequentialTaskEvents)
 		}
 	}
 }
@@ -279,21 +321,22 @@ func (a *Agent) runSequentialTaskEventLoop(wg *sync.WaitGroup) {
 func (a *Agent) Start() {
 	logger.Infof("Starting agent <ID: %s, Name: %s>", a.GetID(), a.GetName())
 	a.isRunning = true
-	var wg sync.WaitGroup
-	wg.Add(1)
-	go a.runTaskLoop(&wg)
-	wg.Add(1)
-	go a.runSequentialTaskEventLoop(&wg)
-	a.taskLoopRoutines = &wg
+	a.incrementTaskLoopRoutines()
+	go a.runTaskLoop()
+	a.incrementTaskLoopRoutines()
+	go a.runSequentialTaskEventLoop()
 	logger.Infof("Started agent <ID: %s, Name: %s>", a.GetID(), a.GetName())
 }
 
 func (a *Agent) Stop() {
 	logger.Infof("Stopping agent <ID: %s, Name: %s>", a.GetID(), a.GetName())
 	close(a.taskQueue)
-	for taskType := range a.sequentialTaskQueues {
-		close(a.sequentialTaskQueues[taskType])
+	if a.sequentialTaskQueues != nil {
+		for taskType := range a.sequentialTaskQueues {
+			close(a.sequentialTaskQueues[taskType])
+		}
 	}
+	close(a.sequentialTaskEvents)
 	a.taskLoopRoutines.Wait()
 	a.isRunning = false
 	logger.Infof("Stopped agent <ID: %s, Name: %s>", a.GetID(), a.GetName())
@@ -315,6 +358,13 @@ type AgentTaskType struct {
 	IsSequential bool
 }
 
+func NewAgentTaskType(taskType string, isSequential bool) AgentTaskType {
+	return AgentTaskType{
+		Type:         taskType,
+		IsSequential: isSequential,
+	}
+}
+
 type IAgentTask interface {
 	GetID() string
 	GetName() string
@@ -328,7 +378,7 @@ type IAgentTask interface {
 	IsCompleted() bool
 }
 
-type handlerFunction func(kill chan bool) interface{}
+type HandlerFunction func(kill chan bool) interface{}
 type AgentTask struct {
 	IAgentTask
 	id                string
@@ -338,11 +388,11 @@ type AgentTask struct {
 	result            interface{}
 	isCompleted       bool
 	wasKilled         bool
-	handler           handlerFunction
+	handler           HandlerFunction
 	killChannel       chan bool
 }
 
-func NewAgentTask(name string, taskType AgentTaskType, handler handlerFunction) *AgentTask {
+func NewAgentTask(name string, taskType AgentTaskType, handler HandlerFunction) *AgentTask {
 	id := generateUUID()
 	var result interface{}
 	completionChannel := make(chan interface{}, 1)

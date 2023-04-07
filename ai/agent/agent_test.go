@@ -185,6 +185,16 @@ func TestKillWithSequentialTasks(t *testing.T) {
 	assert.False(t, agent.IsRunning())
 }
 
+func TestStop(t *testing.T) {
+	agent := NewAgent("testName", "testAgentType", nil)
+	agent.Start()
+	task := NewAgentTask("test", testTaskType, testTaskHandlerWithResult)
+	err := agent.AddTask(task)
+	assert.Nil(t, err)
+	agent.Stop()
+	assert.False(t, agent.IsRunning())
+}
+
 func TestSequentialTaskCompletionOrder(t *testing.T) {
 	agent := NewAgent("testAgent", "testAgentType", nil)
 	agent.Start()
