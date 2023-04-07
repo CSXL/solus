@@ -20,21 +20,33 @@ type IAgent interface {
 	GetRunningTasks() AgentTaskMap
 	GetCompletedTasks() AgentTaskMap
 	GetKilledTasks() AgentTaskMap
-	AddTask(task IAgentTask) (*IAgentTask, error)
-	addSequentialTask(task IAgentTask) (*IAgentTask, error)
-	addStandardTask(task IAgentTask) (*IAgentTask, error)
-	runTask(task IAgentTask)
-	runTaskInBackground(task IAgentTask)
+	AddTask(task IAgentTask) error
+	addSequentialTask(task IAgentTask) error
+	addStandardTask(task IAgentTask) error
+	runTask(task IAgentTask) error
+	runTaskInBackground(task IAgentTask) error
 	executeTaskInBackground(task IAgentTask)
 	AwaitAllTasks()
-	runTaskLoop(quit chan bool)
+	runTaskLoop(wg *sync.WaitGroup)
+	runSequentialTaskLoop(taskType AgentTaskType, wg *sync.WaitGroup)
+	runSequentialTaskEventLoop(wg *sync.WaitGroup)
 	Start()
 	Stop()
 	Kill()
 }
 
+type agentSequentialTaskEvent string
+
+const (
+	agentSequentialTaskEventNewType agentSequentialTaskEvent = "newType"
+)
+
 type AgentTaskMap map[string]*IAgentTask
 type AgentSequentialTaskQueueMap map[AgentTaskType]chan IAgentTask
+type agentSequentialTaskEvents chan struct {
+	agentSequentialTaskEvent
+	string
+}
 type Agent struct {
 	IAgent
 	id                   string                      // Agent ID
@@ -46,6 +58,7 @@ type Agent struct {
 	killedTasks          AgentTaskMap                // Agent killed tasks
 	taskQueue            chan IAgentTask             // Agent general task queue
 	sequentialTaskQueues AgentSequentialTaskQueueMap // Agent queues for sequential tasks
+	sequentialTaskEvents agentSequentialTaskEvents   // Agent events for sequential tasks
 	routines             *sync.WaitGroup             // Waitgroup for running tasks
 	taskLoopRoutines     *sync.WaitGroup             // Waitgroup for task loop
 	killChannel          chan bool                   // Channel to kill agent
@@ -66,6 +79,7 @@ func NewAgent(name string, agentType string, config interface{}) *Agent {
 	killedTasks := make(AgentTaskMap)
 	taskQueue := make(chan IAgentTask, 100)
 	sequentialTaskQueues := make(AgentSequentialTaskQueueMap)
+	sequentialTaskEvents := make(agentSequentialTaskEvents)
 	kill := make(chan bool)
 	return &Agent{
 		id:                   id,
@@ -79,6 +93,7 @@ func NewAgent(name string, agentType string, config interface{}) *Agent {
 		killedTasks:          killedTasks,
 		taskQueue:            taskQueue,
 		sequentialTaskQueues: sequentialTaskQueues,
+		sequentialTaskEvents: sequentialTaskEvents,
 		killChannel:          kill,
 	}
 }
@@ -127,6 +142,10 @@ func (a *Agent) addSequentialTask(task IAgentTask) error {
 		_, sequentialTaskQueueExists := a.sequentialTaskQueues[taskType]
 		if !sequentialTaskQueueExists {
 			a.sequentialTaskQueues[taskType] = make(chan IAgentTask, 100)
+			a.sequentialTaskEvents <- struct {
+				agentSequentialTaskEvent
+				string
+			}{agentSequentialTaskEventNewType, string(taskType.Type)}
 		}
 		a.sequentialTaskQueues[taskType] <- task
 		return nil
@@ -148,16 +167,25 @@ func (a *Agent) taskExists(task IAgentTask) bool {
 	return completedTaskExists || runningTaskExists
 }
 
-func (a *Agent) runTaskInBackground(task IAgentTask) (*IAgentTask, error) {
+func (a *Agent) runTaskInBackground(task IAgentTask) error {
 	if !a.taskExists(task) {
 		a.runningTasks[task.GetID()] = &task
-		task := a.executeTaskInBackground(task)
-		return task, nil
+		a.executeTaskInBackground(task)
+		return nil
 	}
-	return nil, fmt.Errorf("task already exists with <ID: %s>", task.GetID())
+	return fmt.Errorf("task already exists with <ID: %s>", task.GetID())
 }
 
-func (a *Agent) executeTaskInBackground(task IAgentTask) *IAgentTask {
+func (a *Agent) runTask(task IAgentTask) error {
+	err := a.runTaskInBackground(task)
+	if err != nil {
+		return err
+	}
+	task.AwaitCompletion()
+	return nil
+}
+
+func (a *Agent) executeTaskInBackground(task IAgentTask) {
 	a.runningTasks[task.GetID()] = &task
 	a.routines.Add(1)
 	go func() {
@@ -171,7 +199,6 @@ func (a *Agent) executeTaskInBackground(task IAgentTask) *IAgentTask {
 			}
 		})
 	}()
-	return &task
 }
 
 func (a *Agent) AwaitAllTasks() {
@@ -190,16 +217,37 @@ func (a *Agent) runTaskLoop(wg *sync.WaitGroup) {
 		}
 	}
 }
-
-func (a *Agent) runSequentialTaskLoop(wg *sync.WaitGroup, taskType AgentTaskType) {
+func (a *Agent) runSequentialTaskLoop(taskType AgentTaskType, wg *sync.WaitGroup) {
 	defer wg.Done()
 	for {
 		select {
 		case task := <-a.sequentialTaskQueues[taskType]:
-			a.runTaskInBackground(task)
+			a.runTask(task) // Runs the task blocking the task loop
 		case <-a.killChannel:
 			close(a.sequentialTaskQueues[taskType])
 			return
+		}
+	}
+}
+
+func (a *Agent) runSequentialTaskEventLoop(wg *sync.WaitGroup) {
+	defer wg.Done()
+	for {
+		select {
+		case eventType := <-a.sequentialTaskEvents:
+			switch eventType.agentSequentialTaskEvent {
+			case agentSequentialTaskEventNewType:
+				wg.Add(1)
+				taskType := AgentTaskType{
+					Type:         eventType.string,
+					IsSequential: true,
+				}
+				go a.runSequentialTaskLoop(taskType, wg)
+			}
+		case <-a.killChannel:
+			for taskType := range a.sequentialTaskQueues {
+				close(a.sequentialTaskQueues[taskType])
+			}
 		}
 	}
 }
@@ -208,10 +256,8 @@ func (a *Agent) Start() {
 	var wg sync.WaitGroup
 	wg.Add(1)
 	go a.runTaskLoop(&wg)
-	for taskType := range a.sequentialTaskQueues {
-		wg.Add(1)
-		go a.runSequentialTaskLoop(&wg, taskType)
-	}
+	wg.Add(1)
+	go a.runSequentialTaskEventLoop(&wg)
 	a.taskLoopRoutines = &wg
 }
 
@@ -260,23 +306,23 @@ type AgentTask struct {
 	isCompleted       bool
 	wasKilled         bool
 	handler           handlerFunction
-	kill              chan bool
+	killChannel       chan bool
 }
 
 func NewAgentTask(name string, taskType AgentTaskType, handler handlerFunction) *AgentTask {
 	id := generateUUID()
 	var result interface{}
-	channel := make(chan interface{}, 1)
-	kill := make(chan bool, 1)
+	completionChannel := make(chan interface{}, 1)
+	killChannel := make(chan bool, 1)
 	isCompleted := false
 	wasKilled := false
 	return &AgentTask{
 		id:                id,
 		name:              name,
 		_type:             taskType,
-		completionChannel: channel,
+		completionChannel: completionChannel,
 		result:            result,
-		kill:              kill,
+		killChannel:       killChannel,
 		isCompleted:       isCompleted,
 		wasKilled:         wasKilled,
 		handler:           handler,
@@ -304,7 +350,7 @@ func (t *AgentTask) GetResult() interface{} {
 }
 
 func (t *AgentTask) Execute(callback func()) {
-	result := t.handler(t.kill)
+	result := t.handler(t.killChannel)
 	t.result = result
 	callback()
 	t.isCompleted = true
@@ -312,7 +358,10 @@ func (t *AgentTask) Execute(callback func()) {
 }
 
 func (t *AgentTask) Kill() {
-	t.kill <- true
+	for len(t.killChannel) > 0 {
+		<-t.killChannel
+	}
+	t.killChannel <- true
 	t.wasKilled = true
 }
 

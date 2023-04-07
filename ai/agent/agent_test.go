@@ -15,6 +15,11 @@ var (
 	testTaskHandlerWithResult = func(kill chan bool) interface{} {
 		return "test"
 	}
+	testTaskHandlerWaitForever = func(kill chan bool) interface{} {
+		mischeviousChannel := make(chan bool)
+		<-mischeviousChannel
+		return "This will never be returned :("
+	}
 	// Test task types
 	testTaskType = AgentTaskType{
 		Type:         "test",
@@ -93,11 +98,45 @@ func TestTaskWithResult(t *testing.T) {
 	assert.Equal(t, true, task.IsCompleted())
 }
 
+func TestSequentialTaskWithResult(t *testing.T) {
+	agent := NewAgent("testName", "testAgentType", nil)
+	agent.Start()
+	defer agent.Kill()
+	task := NewAgentTask("test", testSequentialTaskType, testTaskHandlerWithResult)
+	err := agent.AddTask(task)
+	assert.Nil(t, err)
+	result := task.AwaitCompletion()
+	assert.Equal(t, "test", result)
+	assert.Equal(t, true, task.IsCompleted())
+}
+
 func TestTaskWithKill(t *testing.T) {
 	agent := NewAgent("testName", "testAgentType", nil)
 	agent.Start()
 	defer agent.Kill()
 	task := NewAgentTask("test", testTaskType, testTaskHandlerWaitKill)
+	err := agent.AddTask(task)
+	assert.Nil(t, err)
+	task.Kill()
+	assert.Equal(t, true, task.WasKilled())
+}
+
+func TestSequentialTaskWithKill(t *testing.T) {
+	agent := NewAgent("testName", "testAgentType", nil)
+	agent.Start()
+	defer agent.Kill()
+	task := NewAgentTask("test", testSequentialTaskType, testTaskHandlerWaitKill)
+	err := agent.AddTask(task)
+	assert.Nil(t, err)
+	task.Kill()
+	assert.Equal(t, true, task.WasKilled())
+}
+
+func TestMischeviousTaskWithKill(t *testing.T) {
+	agent := NewAgent("testName", "testAgentType", nil)
+	agent.Start()
+	defer agent.Kill()
+	task := NewAgentTask("test", testTaskType, testTaskHandlerWaitForever)
 	err := agent.AddTask(task)
 	assert.Nil(t, err)
 	task.Kill()
