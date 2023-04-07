@@ -75,6 +75,10 @@ func (c *ChatClient) SetMessages(messages []ChatMessage) {
 	c.messages = messages
 }
 
+func (c *ChatClient) SetBaseURL(baseURL string) {
+	c.openAIClient = NewOpenAIWithBaseURL("test", baseURL)
+}
+
 func (c *ChatClient) ClearMessages() {
 	c.messages = []ChatMessage{}
 }

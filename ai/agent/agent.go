@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"log"
@@ -53,6 +54,7 @@ type agentSequentialTaskEvents chan struct {
 }
 type Agent struct {
 	IAgent
+	ctx                  context.Context             // Agent context
 	id                   string                      // Agent ID
 	name                 string                      // Agent human-readable name
 	_type                string                      // Agent type
@@ -76,6 +78,7 @@ type Agent struct {
 // agentType: Agent type
 // config: Agent configuration
 func NewAgent(name string, agentType string, config interface{}) *Agent {
+	ctx := context.Background()
 	logger.Init("agent", true, false, io.Discard)
 	logger.SetFlags(log.LUTC)
 	id := generateUUID()
@@ -90,6 +93,7 @@ func NewAgent(name string, agentType string, config interface{}) *Agent {
 	sequentialTaskEvents := make(agentSequentialTaskEvents)
 	kill := make(chan bool)
 	return &Agent{
+		ctx:                  ctx,
 		id:                   id,
 		name:                 name,
 		_type:                agentType,
