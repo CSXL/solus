@@ -7,6 +7,11 @@ import (
 	"github.com/google/uuid"
 )
 
+func generateUUID() string {
+	uuid := uuid.New()
+	return uuid.String()
+}
+
 type IAgent interface {
 	GetID() string
 	GetName() string
@@ -14,6 +19,7 @@ type IAgent interface {
 	GetConfig() interface{}
 	GetRunningTasks() AgentTaskMap
 	GetCompletedTasks() AgentTaskMap
+	GetKilledTasks() AgentTaskMap
 	AddTask(task IAgentTask) (*IAgentTask, error)
 	addSequentialTask(task IAgentTask) (*IAgentTask, error)
 	addStandardTask(task IAgentTask) (*IAgentTask, error)
@@ -21,8 +27,7 @@ type IAgent interface {
 	runTaskInBackground(task IAgentTask)
 	executeTaskInBackground(task IAgentTask)
 	AwaitAllTasks()
-	AwaitTask(task IAgentTask)
-	RunTaskLoop(quit chan bool)
+	runTaskLoop(quit chan bool)
 	Start()
 	Stop()
 	Kill()
@@ -38,11 +43,12 @@ type Agent struct {
 	config               interface{}                 // Agent configuration
 	completedTasks       AgentTaskMap                // Agent completed tasks
 	runningTasks         AgentTaskMap                // Agent running tasks
+	killedTasks          AgentTaskMap                // Agent killed tasks
 	taskQueue            chan IAgentTask             // Agent general task queue
 	sequentialTaskQueues AgentSequentialTaskQueueMap // Agent queues for sequential tasks
 	routines             *sync.WaitGroup             // Waitgroup for running tasks
 	taskLoopRoutines     *sync.WaitGroup             // Waitgroup for task loop
-	kill                 chan bool                   // Channel to kill agent
+	killChannel          chan bool                   // Channel to kill agent
 }
 
 // NewAgent creates a new agent
@@ -51,12 +57,14 @@ type Agent struct {
 // name: Human-readable name for the agent
 // agentType: Agent type
 // config: Agent configuration
-func NewAgent(id string, name string, agentType string, config interface{}) *Agent {
+func NewAgent(name string, agentType string, config interface{}) *Agent {
+	id := generateUUID()
 	routines := &sync.WaitGroup{}
 	taskLoopRoutines := &sync.WaitGroup{}
 	completedTasks := make(AgentTaskMap)
 	runningTasks := make(AgentTaskMap)
-	taskQueue := make(chan IAgentTask)
+	killedTasks := make(AgentTaskMap)
+	taskQueue := make(chan IAgentTask, 100)
 	sequentialTaskQueues := make(AgentSequentialTaskQueueMap)
 	kill := make(chan bool)
 	return &Agent{
@@ -68,9 +76,10 @@ func NewAgent(id string, name string, agentType string, config interface{}) *Age
 		taskLoopRoutines:     taskLoopRoutines,
 		runningTasks:         runningTasks,
 		completedTasks:       completedTasks,
+		killedTasks:          killedTasks,
 		taskQueue:            taskQueue,
 		sequentialTaskQueues: sequentialTaskQueues,
-		kill:                 kill,
+		killChannel:          kill,
 	}
 }
 
@@ -98,30 +107,39 @@ func (a *Agent) GetCompletedTasks() AgentTaskMap {
 	return a.completedTasks
 }
 
-func (a *Agent) AddTask(task IAgentTask) (*IAgentTask, error) {
+func (a *Agent) GetKilledTasks() AgentTaskMap {
+	return a.killedTasks
+}
+
+// AddTask adds a task for the agent to execute in its task loop
+//
+// task: Task to add
+func (a *Agent) AddTask(task IAgentTask) error {
 	if task.IsSequential() {
 		return a.addSequentialTask(task)
 	}
 	return a.addStandardTask(task)
 }
 
-func (a *Agent) addSequentialTask(task IAgentTask) (*IAgentTask, error) {
+func (a *Agent) addSequentialTask(task IAgentTask) error {
 	if !a.taskExists(task) {
 		taskType := task.GetType()
 		_, sequentialTaskQueueExists := a.sequentialTaskQueues[taskType]
 		if !sequentialTaskQueueExists {
-			a.sequentialTaskQueues[taskType] = make(chan IAgentTask)
+			a.sequentialTaskQueues[taskType] = make(chan IAgentTask, 100)
 		}
 		a.sequentialTaskQueues[taskType] <- task
+		return nil
 	}
-	return nil, fmt.Errorf("task already exists with <ID: %s>", task.GetID())
+	return fmt.Errorf("task already exists with <ID: %s>", task.GetID())
 }
 
-func (a *Agent) addStandardTask(task IAgentTask) (*IAgentTask, error) {
+func (a *Agent) addStandardTask(task IAgentTask) error {
 	if !a.taskExists(task) {
 		a.taskQueue <- task
+		return nil
 	}
-	return nil, fmt.Errorf("task already exists with <ID: %s>", task.GetID())
+	return fmt.Errorf("task already exists with <ID: %s>", task.GetID())
 }
 
 func (a *Agent) taskExists(task IAgentTask) bool {
@@ -146,7 +164,11 @@ func (a *Agent) executeTaskInBackground(task IAgentTask) *IAgentTask {
 		task.Execute(func() {
 			a.routines.Done()
 			delete(a.runningTasks, task.GetID())
-			a.completedTasks[task.GetID()] = &task
+			if task.WasKilled() {
+				a.completedTasks[task.GetID()] = &task
+			} else {
+				a.killedTasks[task.GetID()] = &task
+			}
 		})
 	}()
 	return &task
@@ -162,7 +184,7 @@ func (a *Agent) runTaskLoop(wg *sync.WaitGroup) {
 		select {
 		case task := <-a.taskQueue:
 			a.runTaskInBackground(task)
-		case <-a.kill:
+		case <-a.killChannel:
 			close(a.taskQueue)
 			return
 		}
@@ -175,7 +197,7 @@ func (a *Agent) runSequentialTaskLoop(wg *sync.WaitGroup, taskType AgentTaskType
 		select {
 		case task := <-a.sequentialTaskQueues[taskType]:
 			a.runTaskInBackground(task)
-		case <-a.kill:
+		case <-a.killChannel:
 			close(a.sequentialTaskQueues[taskType])
 			return
 		}
@@ -202,9 +224,10 @@ func (a *Agent) Stop() {
 }
 
 func (a *Agent) Kill() {
-	a.kill <- true
+	a.killChannel <- true
 	for task := range a.runningTasks {
 		(*a.runningTasks[task]).Kill()
+		a.killedTasks[task] = a.runningTasks[task]
 	}
 }
 
@@ -218,6 +241,7 @@ type IAgentTask interface {
 	GetName() string
 	GetType() AgentTaskType
 	IsSequential() bool
+	WasKilled() bool
 	GetResult() interface{}
 	Execute(callback func())
 	Kill()
@@ -228,37 +252,35 @@ type IAgentTask interface {
 type handlerFunction func(kill chan bool) interface{}
 type AgentTask struct {
 	IAgentTask
-	id          string
-	name        string
-	_type       AgentTaskType
-	channel     chan interface{}
-	result      interface{}
-	isCompleted bool
-	handler     handlerFunction
-	kill        chan bool
+	id                string
+	name              string
+	_type             AgentTaskType
+	completionChannel chan interface{}
+	result            interface{}
+	isCompleted       bool
+	wasKilled         bool
+	handler           handlerFunction
+	kill              chan bool
 }
 
 func NewAgentTask(name string, taskType AgentTaskType, handler handlerFunction) *AgentTask {
 	id := generateUUID()
-	channel := make(chan interface{})
-	result := make(chan interface{})
-	kill := make(chan bool)
+	var result interface{}
+	channel := make(chan interface{}, 1)
+	kill := make(chan bool, 1)
 	isCompleted := false
+	wasKilled := false
 	return &AgentTask{
-		id:          id,
-		name:        name,
-		_type:       taskType,
-		channel:     channel,
-		result:      result,
-		kill:        kill,
-		isCompleted: isCompleted,
-		handler:     handler,
+		id:                id,
+		name:              name,
+		_type:             taskType,
+		completionChannel: channel,
+		result:            result,
+		kill:              kill,
+		isCompleted:       isCompleted,
+		wasKilled:         wasKilled,
+		handler:           handler,
 	}
-}
-
-func generateUUID() string {
-	uuid := uuid.New()
-	return uuid.String()
 }
 
 func (t *AgentTask) GetID() string {
@@ -286,17 +308,22 @@ func (t *AgentTask) Execute(callback func()) {
 	t.result = result
 	callback()
 	t.isCompleted = true
-	t.channel <- result
+	t.completionChannel <- result
 }
 
 func (t *AgentTask) Kill() {
 	t.kill <- true
+	t.wasKilled = true
 }
 
 func (t *AgentTask) AwaitCompletion() interface{} {
-	return <-t.channel
+	return <-t.completionChannel
 }
 
 func (t *AgentTask) IsCompleted() bool {
 	return t.isCompleted
+}
+
+func (t *AgentTask) WasKilled() bool {
+	return t.wasKilled
 }
