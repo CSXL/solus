@@ -2,6 +2,7 @@ package agent
 
 import (
 	"encoding/json"
+	"fmt"
 
 	"github.com/CSXL/solus/ai/openai"
 	"github.com/google/logger"
@@ -131,25 +132,62 @@ func (c *ChatAgent) GetLastMessageRole() ChatAgentMessageRole {
 	return c.GetLastMessage().Role
 }
 
-func (c *ChatAgent) SendMessage(msg ChatAgentMessage) (*AgentTask, error) {
+func (c *ChatAgent) SendMessage(msg ChatAgentMessage) (*ChatAgentTask, error) {
 	if !c.IsRunning() {
 		logger.Info("Note: Agent is not running, message will be queued but not sent.")
 	}
-	c.AddMessage(msg)
-	handler := func(kill chan bool) interface{} {
-		err := c.OpenAIChatClient.SendMessage(msg.Content, string(msg.Role))
+	sendTask, err := NewChatAgentTask(c, ChatAgentTaskTypeSendMessage, msg)
+	if err != nil {
+		return nil, err
+	}
+	err = c.AddTask(sendTask)
+	if err != nil {
+		return nil, err
+	}
+	return sendTask, err
+}
+
+type ChatAgentTaskType string
+type ChatAgentTaskPayload interface{}
+
+const (
+	ChatAgentTaskTypeSendMessage ChatAgentTaskType = "send_message"
+)
+
+type ChatAgentTask struct {
+	*AgentTask
+}
+
+func NewChatAgentTask(agent *ChatAgent, taskType ChatAgentTaskType, payload ChatAgentTaskPayload) (*ChatAgentTask, error) {
+	isSequential := true
+	agentTaskType := NewAgentTaskType(string(taskType), isSequential)
+	handler, err := BuildChatAgentHandler(agent, taskType, payload)
+	if err != nil {
+		return nil, err
+	}
+	return &ChatAgentTask{
+		AgentTask: NewAgentTask(string(taskType), agentTaskType, handler),
+	}, nil
+}
+
+func BuildChatAgentHandler(agent *ChatAgent, taskType ChatAgentTaskType, payload ChatAgentTaskPayload) (HandlerFunction, error) {
+	switch taskType {
+	case ChatAgentTaskTypeSendMessage:
+		msg := payload.(ChatAgentMessage)
+		return BuildChatAgentMessageHandler(agent, msg), nil
+	default:
+		return nil, fmt.Errorf("unknown task type: %s", taskType)
+	}
+}
+
+func BuildChatAgentMessageHandler(agent *ChatAgent, msg ChatAgentMessage) HandlerFunction {
+	return func(kill chan bool) interface{} {
+		agent.AddMessage(msg)
+		err := agent.OpenAIChatClient.SendMessage(msg.Content, string(msg.Role))
 		if err != nil {
 			return err
 		}
-		c.Messages = append(c.Messages, *ChatAgentMessageFromOpenAIChatMessage(c.OpenAIChatClient.GetLastMessage()))
-		return c.OpenAIChatClient.GetLastMessage()
+		agent.Messages = append(agent.Messages, *ChatAgentMessageFromOpenAIChatMessage(agent.OpenAIChatClient.GetLastMessage()))
+		return agent.OpenAIChatClient.GetLastMessage()
 	}
-	isSequential := true
-	taskType := AgentTaskType{
-		"send_message",
-		isSequential,
-	}
-	sendTask := NewAgentTask("send_message", taskType, handler)
-	err := c.AddTask(sendTask)
-	return sendTask, err
 }
