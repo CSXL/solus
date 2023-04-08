@@ -95,6 +95,35 @@ func ChatAgentMessageFromOpenAIChatMessage(msg openai.ChatMessage) *ChatAgentMes
 	return NewChatAgentMessage(ChatAgentMessageTypeText, ChatAgentMessageRole(msg.Role), msg.Content)
 }
 
+type ChatAgentMessageContent struct {
+	Type    string `json:"type"`
+	Content string `json:"content"`
+}
+
+func NewChatAgentMessageContent(msgType string, content string) *ChatAgentMessageContent {
+	return &ChatAgentMessageContent{
+		Type:    msgType,
+		Content: content,
+	}
+}
+
+func (c *ChatAgentMessageContent) ToJSON() (string, error) {
+	json, err := json.Marshal(c)
+	if err != nil {
+		return "", err
+	}
+	return string(json), nil
+}
+
+func ChatAgentMessageContentFromJSON(jsonMessage string) (*ChatAgentMessageContent, error) {
+	var content ChatAgentMessageContent
+	err := json.Unmarshal([]byte(jsonMessage), &content)
+	if err != nil {
+		return nil, err
+	}
+	return &content, nil
+}
+
 type ChatAgent struct {
 	*Agent
 	OpenAIChatClient *openai.ChatClient

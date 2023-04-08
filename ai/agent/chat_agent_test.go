@@ -54,6 +54,47 @@ func TestChatAgentMessage_ToJSON(t *testing.T) {
 	assert.Equal(t, `{"Type":"text","Role":"user","Content":"test-content"}`, json)
 }
 
+func TestChatAgentMessage_FromJSON(t *testing.T) {
+	chatAgentMessage := NewChatAgentMessage(ChatAgentMessageTypeText, ChatAgentMessageRoleUser, "test-content")
+	json, err := chatAgentMessage.ToJSON()
+	assert.Nil(t, err)
+	assert.Equal(t, `{"Type":"text","Role":"user","Content":"test-content"}`, json)
+	chatAgentMessage, err = ChatAgentMessageFromJSON(json)
+	assert.Nil(t, err)
+	assert.Equal(t, ChatAgentMessageTypeText, chatAgentMessage.Type)
+	assert.Equal(t, ChatAgentMessageRoleUser, chatAgentMessage.Role)
+	assert.Equal(t, "test-content", chatAgentMessage.Content)
+}
+
+func TestNewChatAgentMessageContent(t *testing.T) {
+	msgType := "user_message"
+	msgContent := "test-content"
+	chatAgentMessageContent := NewChatAgentMessageContent(msgType, msgContent)
+	assert.Equal(t, msgContent, chatAgentMessageContent.Content)
+}
+
+func TestChatAgentMessageContent_ToJSON(t *testing.T) {
+	msgType := "user_message"
+	msgContent := "test-content"
+	chatAgentMessageContent := NewChatAgentMessageContent(msgType, msgContent)
+	json, err := chatAgentMessageContent.ToJSON()
+	assert.Nil(t, err)
+	assert.Equal(t, `{"type":"user_message","content":"test-content"}`, json)
+}
+
+func TestChatAgentMessageContent_FromJSON(t *testing.T) {
+	msgType := "user_message"
+	msgContent := "test-content"
+	chatAgentMessageContent := NewChatAgentMessageContent(msgType, msgContent)
+	json, err := chatAgentMessageContent.ToJSON()
+	assert.Nil(t, err)
+	assert.Equal(t, `{"type":"user_message","content":"test-content"}`, json)
+	chatAgentMessageContent, err = ChatAgentMessageContentFromJSON(json)
+	assert.Nil(t, err)
+	assert.Equal(t, msgType, chatAgentMessageContent.Type)
+	assert.Equal(t, msgContent, chatAgentMessageContent.Content)
+}
+
 func TestNewChatAgent(t *testing.T) {
 	NewChatAgent("testAgent", NewChatAgentConfig("test-key"))
 }
