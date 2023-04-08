@@ -5,14 +5,10 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/CSXL/solus/ai"
 	"github.com/CSXL/solus/ai/openai"
 	"github.com/stretchr/testify/assert"
 )
-
-func TestNewChatAgentConfig(t *testing.T) {
-	chatAgentConfig := NewChatAgentConfig("test-key")
-	assert.Equal(t, "test-key", chatAgentConfig.OpenAIAPIKey)
-}
 
 func TestNewChatAgentMessage(t *testing.T) {
 	chatAgentMessage := NewChatAgentMessage(ChatAgentMessageTypeText, ChatAgentMessageRoleUser, "test-content")
@@ -97,60 +93,60 @@ func TestChatAgentMessageContent_FromJSON(t *testing.T) {
 }
 
 func TestNewChatAgent(t *testing.T) {
-	NewChatAgent("testAgent", NewChatAgentConfig("test-key"))
+	NewChatAgent("testAgent", ai.NewAIConfig("test-key"))
 }
 
 func TestChatAgent_AddMessage(t *testing.T) {
-	chatAgent := NewChatAgent("testAgent", NewChatAgentConfig("test-key"))
+	chatAgent := NewChatAgent("testAgent", ai.NewAIConfig("test-key"))
 	chatAgent.AddMessage(*NewChatAgentMessage(ChatAgentMessageTypeText, ChatAgentMessageRoleUser, "test-content"))
 	assert.Equal(t, 1, len(chatAgent.Messages))
 }
 
 func TestChatAgent_GetMessages(t *testing.T) {
-	chatAgent := NewChatAgent("testAgent", NewChatAgentConfig("test-key"))
+	chatAgent := NewChatAgent("testAgent", ai.NewAIConfig("test-key"))
 	chatAgent.AddMessage(*NewChatAgentMessage(ChatAgentMessageTypeText, ChatAgentMessageRoleUser, "test-content"))
 	assert.Equal(t, 1, len(chatAgent.GetMessages()))
 }
 
 func TestChatAgent_SetMessages(t *testing.T) {
-	chatAgent := NewChatAgent("testAgent", NewChatAgentConfig("test-key"))
+	chatAgent := NewChatAgent("testAgent", ai.NewAIConfig("test-key"))
 	chatAgent.AddMessage(*NewChatAgentMessage(ChatAgentMessageTypeText, ChatAgentMessageRoleUser, "test-content"))
 	chatAgent.SetMessages([]ChatAgentMessage{})
 	assert.Equal(t, 0, len(chatAgent.GetMessages()))
 }
 
 func TestChatAgent_ResetMessages(t *testing.T) {
-	chatAgent := NewChatAgent("testAgent", NewChatAgentConfig("test-key"))
+	chatAgent := NewChatAgent("testAgent", ai.NewAIConfig("test-key"))
 	chatAgent.AddMessage(*NewChatAgentMessage(ChatAgentMessageTypeText, ChatAgentMessageRoleUser, "test-content"))
 	chatAgent.ResetMessages()
 	assert.Equal(t, 0, len(chatAgent.GetMessages()))
 }
 
 func TestChatAgent_GetLastMessage(t *testing.T) {
-	chatAgent := NewChatAgent("testAgent", NewChatAgentConfig("test-key"))
+	chatAgent := NewChatAgent("testAgent", ai.NewAIConfig("test-key"))
 	chatAgent.AddMessage(*NewChatAgentMessage(ChatAgentMessageTypeText, ChatAgentMessageRoleUser, "test-content"))
 	assert.Equal(t, "test-content", chatAgent.GetLastMessage().Content)
 }
 
 func TestChatAgent_GetLastMessageContent(t *testing.T) {
-	chatAgent := NewChatAgent("testAgent", NewChatAgentConfig("test-key"))
+	chatAgent := NewChatAgent("testAgent", ai.NewAIConfig("test-key"))
 	chatAgent.AddMessage(*NewChatAgentMessage(ChatAgentMessageTypeText, ChatAgentMessageRoleUser, "test-content"))
 	assert.Equal(t, "test-content", chatAgent.GetLastMessageContent())
 }
 
 func TestChatAgent_GetLastMessageRole(t *testing.T) {
-	chatAgent := NewChatAgent("testAgent", NewChatAgentConfig("test-key"))
+	chatAgent := NewChatAgent("testAgent", ai.NewAIConfig("test-key"))
 	chatAgent.AddMessage(*NewChatAgentMessage(ChatAgentMessageTypeText, ChatAgentMessageRoleUser, "test-content"))
 	assert.Equal(t, ChatAgentMessageRoleUser, chatAgent.GetLastMessageRole())
 }
 
 func TestChatAgent_GetLastMessageWithEmptyMessages(t *testing.T) {
-	chatAgent := NewChatAgent("testAgent", NewChatAgentConfig("test-key"))
+	chatAgent := NewChatAgent("testAgent", ai.NewAIConfig("test-key"))
 	assert.Equal(t, ChatAgentMessage{}, chatAgent.GetLastMessage())
 }
 
 func TestChatAgent_SendMessageToAgent(t *testing.T) {
-	chatAgent := NewChatAgent("testAgent", NewChatAgentConfig("test-key"))
+	chatAgent := NewChatAgent("testAgent", ai.NewAIConfig("test-key"))
 	chatAgent.Start()
 	defer chatAgent.Kill()
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -169,7 +165,7 @@ func TestChatAgent_SendMessageToAgent(t *testing.T) {
 }
 
 func TestChatAgent_SendMessage(t *testing.T) {
-	chatAgent := NewChatAgent("testAgent", NewChatAgentConfig("test-key"))
+	chatAgent := NewChatAgent("testAgent", ai.NewAIConfig("test-key"))
 	chatAgent.Start()
 	defer chatAgent.Kill()
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -188,7 +184,7 @@ func TestChatAgent_SendMessage(t *testing.T) {
 }
 
 func TestChatAgent_SendChatMessage(t *testing.T) {
-	chatAgent := NewChatAgent("testAgent", NewChatAgentConfig("test-key"))
+	chatAgent := NewChatAgent("testAgent", ai.NewAIConfig("test-key"))
 	chatAgent.Start()
 	defer chatAgent.Kill()
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -207,7 +203,7 @@ func TestChatAgent_SendChatMessage(t *testing.T) {
 }
 
 func TestChatAgent_SendChatMessageAndWriteResponseToChannel(t *testing.T) {
-	chatAgent := NewChatAgent("testAgent", NewChatAgentConfig("test-key"))
+	chatAgent := NewChatAgent("testAgent", ai.NewAIConfig("test-key"))
 	chatAgent.Start()
 	defer chatAgent.Kill()
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

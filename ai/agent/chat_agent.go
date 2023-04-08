@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/CSXL/solus/ai"
 	"github.com/CSXL/solus/ai/openai"
 	"github.com/google/logger"
 )
@@ -24,16 +25,6 @@ const (
 	ChatAgentMessageTypeLink  ChatAgentMessageType = "link"
 	ChatAgentMessageTypeQuery ChatAgentMessageType = "query"
 )
-
-type ChatAgentConfig struct {
-	OpenAIAPIKey string
-}
-
-func NewChatAgentConfig(openAIAPIKey string) *ChatAgentConfig {
-	return &ChatAgentConfig{
-		OpenAIAPIKey: openAIAPIKey,
-	}
-}
 
 type ChatAgentMessage struct {
 	Type    ChatAgentMessageType
@@ -159,7 +150,7 @@ type ChatAgent struct {
 // the user.
 //
 // Remember to call the Start() method on the ChatAgent!
-func NewChatAgent(name string, config *ChatAgentConfig) *ChatAgent {
+func NewChatAgent(name string, config *ai.AIConfig) *ChatAgent {
 	return &ChatAgent{
 		Agent:            NewAgent(name, ChatAgentType, config),
 		OpenAIChatClient: openai.NewChatClient(config.OpenAIAPIKey),
