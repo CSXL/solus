@@ -80,7 +80,7 @@ func TestConversation_SendUserMessage(t *testing.T) {
 	assert.NotNil(t, conversation.GetLastMessage())
 }
 
-func TestConversation_SendSystemMess(t *testing.T) {
+func TestConversation_SendSystemMessage(t *testing.T) {
 	convName := "test-conv"
 	config := ai.NewAIConfig("test-openai-api-key")
 	conversation := NewConversation(convName, config)
