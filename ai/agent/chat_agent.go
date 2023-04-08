@@ -55,6 +55,18 @@ func NewChatAgentMessage(msgType ChatAgentMessageType, role ChatAgentMessageRole
 	}
 }
 
+func (c *ChatAgentMessage) GetType() ChatAgentMessageType {
+	return c.Type
+}
+
+func (c *ChatAgentMessage) GetRole() ChatAgentMessageRole {
+	return c.Role
+}
+
+func (c *ChatAgentMessage) GetContent() string {
+	return c.Content
+}
+
 func (c *ChatAgentMessage) IsMessageOfType(msgType ChatAgentMessageType) bool {
 	return c.Type == msgType
 }
@@ -102,7 +114,7 @@ func ChatAgentMessageFromJSON(jsonStr string) (*ChatAgentMessage, error) {
 	return &msg, err
 }
 
-func chatAgentMessageFromOpenAIChatMessage(msg openai.ChatMessage) *ChatAgentMessage {
+func ChatAgentMessageFromOpenAIChatMessage(msg openai.ChatMessage) *ChatAgentMessage {
 	return NewChatAgentMessage(ChatAgentMessageTypeText, ChatAgentMessageRole(msg.Role), msg.Content)
 }
 
@@ -217,6 +229,7 @@ func (c *ChatAgent) sendMessage(msg ChatAgentMessage) (*ChatAgentMessage, error)
 		return nil, messageTask.GetResult().(error)
 	}
 	aiResponseMessage := messageTask.GetResult().(*ChatAgentMessage)
+	logger.Infof("Received chat message from ChatAgent <ID: %s, Name: %s>: %s", c.GetID(), c.GetName(), aiResponseMessage.Content)
 	return aiResponseMessage, nil
 }
 
@@ -229,6 +242,7 @@ func (c *ChatAgent) sendMessage(msg ChatAgentMessage) (*ChatAgentMessage, error)
 //	  "content": string // Your message content (e.g. "Hello", "https://example.com", "What is the weather like in 2023?")
 //	}
 func (c *ChatAgent) SendChatMessage(msg ChatAgentMessage) (*ChatAgentMessage, error) {
+	logger.Infof("Sending chat message to ChatAgent <ID: %s, Name: %s>: %s", c.GetID(), c.GetName(), msg.Content)
 	updatedContent, err := ChatAgentMessageContentFromChatAgentMessage(msg).ToJSON()
 	if err != nil {
 		return nil, err
@@ -296,7 +310,7 @@ func buildChatAgentMessageHandler(agent *ChatAgent, msg ChatAgentMessage) Handle
 			return err
 		}
 		openaiResponse := agent.OpenAIChatClient.GetLastMessage()
-		serializedResponse := chatAgentMessageFromOpenAIChatMessage(openaiResponse)
+		serializedResponse := ChatAgentMessageFromOpenAIChatMessage(openaiResponse)
 		agent.Messages = append(agent.Messages, *serializedResponse)
 		return serializedResponse
 	}

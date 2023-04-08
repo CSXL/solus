@@ -3,8 +3,6 @@ package agent
 import (
 	"context"
 	"fmt"
-	"io"
-	"log"
 	"sync"
 
 	"github.com/google/logger"
@@ -80,8 +78,6 @@ type Agent struct {
 // config: Agent configuration
 func NewAgent(name string, agentType string, config interface{}) *Agent {
 	ctx := context.Background()
-	logger.Init("agent", true, false, io.Discard)
-	logger.SetFlags(log.LUTC)
 	id := generateUUID()
 	isRunning := false
 	completedTasks := make(AgentTaskMap)

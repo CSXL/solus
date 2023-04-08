@@ -2,12 +2,13 @@ package tui
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
 
-	ai "github.com/CSXL/solus/ai/openai"
+	"github.com/CSXL/solus/ai"
+	"github.com/CSXL/solus/ai/agent"
+	"github.com/CSXL/solus/ai/chat"
 	"github.com/CSXL/solus/config"
 	"github.com/CSXL/solus/query"
 	"github.com/CSXL/solus/query/search_clients"
@@ -17,6 +18,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/glamour"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/google/logger"
 	"github.com/joho/godotenv"
 )
 
@@ -101,13 +103,13 @@ type TUIConfig struct {
 }
 
 type model struct {
-	ChatClient  *ai.ChatClient
-	QueryClient *query.QueryBuilder
-	screen      screen
-	input       textinput.Model
-	viewport    viewport.Model
-	tui_config  TUIConfig
-	err         error
+	Conversation *chat.Conversation
+	QueryClient  *query.QueryBuilder
+	screen       screen
+	input        textinput.Model
+	viewport     viewport.Model
+	tui_config   TUIConfig
+	err          error
 }
 
 func NewModel(tui_config TUIConfig, query_client *query.QueryBuilder) model {
@@ -117,12 +119,15 @@ func NewModel(tui_config TUIConfig, query_client *query.QueryBuilder) model {
 	ti.Focus()
 	ti.CharLimit = 256
 	ti.Width = 80
+	conversationName := "Solus TUI Conversation"
+	conversationConfig := ai.NewAIConfig(tui_config.APIKey)
+	conversation := chat.NewConversation(conversationName, conversationConfig)
 	return model{
-		ChatClient:  ai.NewChatClient(tui_config.APIKey),
-		input:       ti,
-		viewport:    viewport.New(80, 20),
-		tui_config:  tui_config,
-		QueryClient: query_client,
+		Conversation: conversation,
+		input:        ti,
+		viewport:     viewport.New(80, 20),
+		tui_config:   tui_config,
+		QueryClient:  query_client,
 	}
 }
 
@@ -155,17 +160,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		case key.Matches(msg, keybindings.Enter):
 			if m.input.Value() != "" {
-				messageToSend := newTUIMessage("message", "user", m.input.Value())
-				jsonMessage, err := (&messageToSend).ToJSON()
-				if err != nil {
-					m.err = err
-					return m, nil
-				}
-				m.ChatClient.SendUserMessage(jsonMessage)
+				messageToSend := m.input.Value()
+				m.Conversation.SendUserMessage(messageToSend)
 				m.input.SetValue("")
 			}
 		case key.Matches(msg, keybindings.Save):
-			m.ChatClient.SaveMessages(m.tui_config.SavedMessagesFile)
+			m.Conversation.SaveToFile(m.tui_config.SavedMessagesFile)
 		case key.Matches(msg, keybindings.Down):
 			m.viewport.YOffset++
 			if m.viewport.ScrollPercent() >= 100 {
@@ -194,97 +194,42 @@ func (m model) View() string {
 	return s
 }
 
-type tuiMessage struct {
-	Type    string `json:"type"`
-	Role    string `json:"role"`
-	Content string `json:"content"`
-}
-
-func newTUIMessage(_type string, role string, content string) tuiMessage {
-	return tuiMessage{
-		Role:    role,
-		Type:    _type,
-		Content: content,
-	}
-}
-
-func (tmsg *tuiMessage) GetType() string {
-	return tmsg.Type
-}
-
-func (tmsg *tuiMessage) GetRole() string {
-	return tmsg.Role
-}
-
-func (tmsg *tuiMessage) GetContent() string {
-	return tmsg.Content
-}
-
-func (tmsg *tuiMessage) ToJSON() (string, error) {
-	jsonMessage, err := json.Marshal(tmsg)
-	if err != nil {
-		return "", err
-	}
-	return string(jsonMessage), nil
-}
-
-func processMessage(msg ai.ChatMessage) (tuiMessage, error) {
-	var tuiMsg tuiMessage
-	if msg.GetRole() == "assistant" || msg.GetRole() == "user" {
-		AIMessage, err := msg.ToAIMessage()
-		if err != nil {
-			return tuiMsg, err
-		}
-		tuiMsg = newTUIMessage(AIMessage.GetType(), msg.GetRole(), AIMessage.GetContent())
-		return tuiMsg, nil
-	}
-	tuiMsg = newTUIMessage("message", msg.GetRole(), msg.GetContent())
-	return tuiMsg, nil
-}
-
 func (m model) repromptAI(prompt string) error {
-	currentMessages := m.ChatClient.GetMessages()
+	currentMessages := m.Conversation.GetMessages()
 	messagesBeforeLast := currentMessages[:len(currentMessages)-1]
-	err := m.ChatClient.SendSystemMessage(prompt)
+	_, err := m.Conversation.SendSystemMessage(prompt)
 	if err != nil {
 		return err
 	}
-	newMessage := m.ChatClient.GetLastMessage()
+	newMessage := m.Conversation.GetLastMessage()
 	slicedMessages := append(messagesBeforeLast, newMessage)
-	m.ChatClient.SetMessages(slicedMessages)
+	m.Conversation.SetMessages(slicedMessages)
 	return nil
 }
 
+func getMessageContent(msg agent.ChatAgentMessage) (*agent.ChatAgentMessageContent, error) {
+	return agent.ChatAgentMessageContentFromJSON(msg.GetContent())
+}
+
 func (m model) resolveLastMessage() error {
-	lastMessage := m.ChatClient.GetLastMessage()
+	lastMessage := m.Conversation.GetLastMessage()
 	if lastMessage.GetRole() == "assistant" {
-		AIMessage, err := lastMessage.ToAIMessage()
-		content := AIMessage.GetContent()
+		unmarshalledContent, err := getMessageContent(lastMessage)
 		// If the chat model doesn't obey the JSON format, Solus will reprompt the AI until it does.
 		// The reprompt messages and the offending message are deleted from the chat history to avoid clutter.
-		for content == "" {
-			messageToReprompt := newTUIMessage("reprompt", "system", "Send the last message again wrapped in JSON.")
-			jsonMessageToReprompt, err := (&messageToReprompt).ToJSON()
-			if err != nil {
-				return err
-			}
-			m.repromptAI(jsonMessageToReprompt)
-			lastMessage = m.ChatClient.GetLastMessage()
-			AIMessage, err = lastMessage.ToAIMessage()
-			if err != nil {
-				return err
-			}
-			content = AIMessage.GetContent()
+		for unmarshalledContent == nil || err != nil {
+			m.repromptAI("Send the last message again wrapped in JSON.")
+			lastMessage = m.Conversation.GetLastMessage()
 		}
 		if err != nil {
 			return err
 		}
-		if AIMessage.IsQuery() {
-			queryResults, err := m.QueryClient.SetType("search").SetQueryText(AIMessage.GetContent()).Execute().GetResults()
+		if lastMessage.IsQueryMessage() {
+			queryResults, err := m.QueryClient.SetType("search").SetQueryText(lastMessage.GetContent()).Execute().GetResults()
 			if err != nil {
 				return err
 			}
-			err = m.ChatClient.SendSystemMessage(queryResults)
+			_, err = m.Conversation.SendSystemMessage(queryResults)
 			if err != nil {
 				return err
 			}
@@ -302,10 +247,9 @@ func (m model) ChatView() string {
 		return m.err.Error()
 	}
 
-	for _, msg := range m.ChatClient.GetMessages() {
+	for _, msg := range m.Conversation.GetMessages() {
 		if msg.GetRole() != "system" || m.tui_config.Debug {
-			tuiMsg, _ := processMessage(msg)
-			formattedMessage := m.formatMessage(tuiMsg)
+			formattedMessage := m.formatMessage(msg)
 			s += styles.secondary.Render(formattedMessage)
 			s += "\n"
 		}
@@ -322,25 +266,37 @@ func (m model) ChatView() string {
 	return s
 }
 
-func (m model) formatMessage(tuiMsg tuiMessage) string {
-	if tuiMsg.GetType() == "query" {
-		return m.formatQueryMessage(tuiMsg)
+func (m model) formatMessage(chatMsg agent.ChatAgentMessage) string {
+	if chatMsg.IsQueryMessage() {
+		return m.formatQueryMessage(chatMsg)
 	}
 
-	return m.formatNonQueryMessage(tuiMsg)
+	return m.formatNonQueryMessage(chatMsg)
 }
 
-func (m model) formatQueryMessage(tuiMsg tuiMessage) string {
-	coloredQuery := styles.specialText.Render(strings.Trim(tuiMsg.GetContent(), " \n"))
+func (m model) formatQueryMessage(chatMsg agent.ChatAgentMessage) string {
+	msgContent, err := getMessageContent(chatMsg)
+	if err != nil {
+		msgContent = &agent.ChatAgentMessageContent{
+			Content: chatMsg.GetContent(),
+		}
+	}
+	coloredQuery := styles.specialText.Render(strings.Trim(msgContent.Content, " \n"))
 	formatted_message := fmt.Sprintf("Searching: %s\n\n", coloredQuery)
 
 	return formatted_message
 }
 
-func (m model) formatNonQueryMessage(tuiMsg tuiMessage) string {
-	formatted_role := strings.ToUpper(tuiMsg.GetRole())
+func (m model) formatNonQueryMessage(chatMsg agent.ChatAgentMessage) string {
+	formatted_role := strings.ToUpper(string(chatMsg.GetRole()))
 	markdown_renderer, _ := glamour.NewTermRenderer(glamour.WithAutoStyle())
-	markdown_content, _ := markdown_renderer.Render(tuiMsg.GetContent())
+	msgContent, err := getMessageContent(chatMsg)
+	if err != nil {
+		msgContent = &agent.ChatAgentMessageContent{
+			Content: chatMsg.GetContent(),
+		}
+	}
+	markdown_content, _ := markdown_renderer.Render(msgContent.Content)
 	formatted_message := fmt.Sprintf("[%s]: %s", formatted_role, markdown_content)
 
 	return formatted_message
@@ -374,19 +330,14 @@ func loadTUIConfig() (TUIConfig, error) {
 	return tui_config, nil
 }
 
-func prepareChatClient(config TUIConfig, chatClient *ai.ChatClient) error {
+func prepareConversation(config TUIConfig, conversation *chat.Conversation) error {
 	if config.LoadMessagesFromFile {
-		err := chatClient.LoadMessages(config.SavedMessagesFile)
+		err := conversation.LoadFromFile(config.SavedMessagesFile)
 		if err != nil {
 			return err
 		}
 	} else {
-		systemTUIMessage := newTUIMessage("system", "system", config.DiscoveryMessage)
-		systemTUIMessageJSON, err := systemTUIMessage.ToJSON()
-		if err != nil {
-			return err
-		}
-		err = chatClient.SendSystemMessage(systemTUIMessageJSON)
+		_, err := conversation.SendSystemMessage(config.DiscoveryMessage)
 		if err != nil {
 			return err
 		}
@@ -416,17 +367,18 @@ func Run() (tea.Model, error) {
 	if err != nil {
 		return nil, err
 	}
+	logFile, err := tea.LogToFile("debug.log", "debug")
+	logger.Init("TUI", tui_config.Debug, tui_config.Debug, logFile)
+	if err != nil {
+		return nil, err
+	}
+	defer logFile.Close()
 	query_client := query.NewQuery(ctx, search_engine_config)
 	m := NewModel(tui_config, query_client)
-	err = prepareChatClient(tui_config, m.ChatClient)
+	err = prepareConversation(tui_config, m.Conversation)
 	if err != nil {
 		return nil, err
 	}
-	f, err := tea.LogToFile("debug.log", "debug")
-	if err != nil {
-		return nil, err
-	}
-	defer f.Close()
 	p := tea.NewProgram(m, tea.WithAltScreen(), tea.WithMouseCellMotion())
 	return p.Run()
 }

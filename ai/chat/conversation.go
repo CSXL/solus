@@ -49,7 +49,15 @@ func (c *Conversation) startIfNotStarted() {
 }
 
 func (c *Conversation) LoadFromFile(filename string) error {
-	return c.chatAgent.OpenAIChatClient.LoadMessages(filename)
+	c.ResetMessages()
+	err := c.chatAgent.OpenAIChatClient.LoadMessages(filename)
+	if err != nil {
+		return err
+	}
+	for _, msg := range c.chatAgent.OpenAIChatClient.GetMessages() {
+		c.chatAgent.AddMessage(*agent.ChatAgentMessageFromOpenAIChatMessage(msg))
+	}
+	return nil
 }
 
 func (c *Conversation) SaveToFile(filename string) error {
