@@ -93,6 +93,25 @@ func TestChatAgent_GetLastMessageWithEmptyMessages(t *testing.T) {
 	assert.Equal(t, ChatAgentMessage{}, chatAgent.GetLastMessage())
 }
 
+func TestChatAgent_SendMessageToAgent(t *testing.T) {
+	chatAgent := NewChatAgent("testAgent", NewChatAgentConfig("test-key"))
+	chatAgent.Start()
+	defer chatAgent.Kill()
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Header().Set("Content-Type", "application/json")
+		fakeResponse := openai.SampleChatCompletion
+		w.Write([]byte(fakeResponse))
+	}))
+	defer ts.Close()
+	chatAgent.OpenAIChatClient.SetBaseURL(ts.URL)
+	msg := NewChatAgentMessage(ChatAgentMessageTypeText, ChatAgentMessageRoleUser, "test-content")
+	messageTask, err := chatAgent.SendMessageToAgent(*msg)
+	assert.Nil(t, err)
+	messageTask.AwaitCompletion()
+	assert.Equal(t, 2, len(chatAgent.Messages))
+}
+
 func TestChatAgent_SendMessage(t *testing.T) {
 	chatAgent := NewChatAgent("testAgent", NewChatAgentConfig("test-key"))
 	chatAgent.Start()
@@ -106,8 +125,8 @@ func TestChatAgent_SendMessage(t *testing.T) {
 	defer ts.Close()
 	chatAgent.OpenAIChatClient.SetBaseURL(ts.URL)
 	msg := NewChatAgentMessage(ChatAgentMessageTypeText, ChatAgentMessageRoleUser, "test-content")
-	messageTask, err := chatAgent.SendMessage(*msg)
+	aiResponse, err := chatAgent.SendMessage(*msg)
 	assert.Nil(t, err)
-	messageTask.AwaitCompletion()
+	assert.NotNil(t, aiResponse)
 	assert.Equal(t, 2, len(chatAgent.Messages))
 }

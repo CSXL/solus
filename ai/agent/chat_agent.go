@@ -132,7 +132,7 @@ func (c *ChatAgent) GetLastMessageRole() ChatAgentMessageRole {
 	return c.GetLastMessage().Role
 }
 
-func (c *ChatAgent) SendMessage(msg ChatAgentMessage) (*ChatAgentTask, error) {
+func (c *ChatAgent) SendMessageToAgent(msg ChatAgentMessage) (*ChatAgentTask, error) {
 	if !c.IsRunning() {
 		logger.Info("Note: Agent is not running, message will be queued but not sent.")
 	}
@@ -145,6 +145,16 @@ func (c *ChatAgent) SendMessage(msg ChatAgentMessage) (*ChatAgentTask, error) {
 		return nil, err
 	}
 	return sendTask, err
+}
+
+func (c *ChatAgent) SendMessage(msg ChatAgentMessage) (*ChatAgentMessage, error) {
+	messageTask, err := c.SendMessageToAgent(msg)
+	if err != nil {
+		return nil, err
+	}
+	messageTask.AwaitCompletion()
+	aiResponseMessage := messageTask.GetResult().(*ChatAgentMessage)
+	return aiResponseMessage, nil
 }
 
 type ChatAgentTaskType string
@@ -187,7 +197,9 @@ func BuildChatAgentMessageHandler(agent *ChatAgent, msg ChatAgentMessage) Handle
 		if err != nil {
 			return err
 		}
-		agent.Messages = append(agent.Messages, *ChatAgentMessageFromOpenAIChatMessage(agent.OpenAIChatClient.GetLastMessage()))
-		return agent.OpenAIChatClient.GetLastMessage()
+		openaiResponse := agent.OpenAIChatClient.GetLastMessage()
+		serializedResponse := ChatAgentMessageFromOpenAIChatMessage(openaiResponse)
+		agent.Messages = append(agent.Messages, *serializedResponse)
+		return serializedResponse
 	}
 }
