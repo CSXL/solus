@@ -1,8 +1,6 @@
 package agent
 
 import (
-	"net/http"
-	"net/http/httptest"
 	"testing"
 
 	"github.com/CSXL/solus/ai"
@@ -149,12 +147,7 @@ func TestChatAgent_SendMessageToAgent(t *testing.T) {
 	chatAgent := NewChatAgent("testAgent", ai.NewAIConfig("test-key"))
 	chatAgent.Start()
 	defer chatAgent.Kill()
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		w.Header().Set("Content-Type", "application/json")
-		fakeResponse := openai.SampleChatCompletion
-		w.Write([]byte(fakeResponse))
-	}))
+	ts := openai.StartHTTPTestServer(openai.SampleChatCompletion)
 	defer ts.Close()
 	chatAgent.OpenAIChatClient.SetBaseURL(ts.URL)
 	msg := NewChatAgentMessage(ChatAgentMessageTypeText, ChatAgentMessageRoleUser, "test-content")
@@ -168,12 +161,7 @@ func TestChatAgent_SendMessage(t *testing.T) {
 	chatAgent := NewChatAgent("testAgent", ai.NewAIConfig("test-key"))
 	chatAgent.Start()
 	defer chatAgent.Kill()
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		w.Header().Set("Content-Type", "application/json")
-		fakeResponse := openai.SampleChatCompletion
-		w.Write([]byte(fakeResponse))
-	}))
+	ts := openai.StartHTTPTestServer(openai.SampleChatCompletion)
 	defer ts.Close()
 	chatAgent.OpenAIChatClient.SetBaseURL(ts.URL)
 	msg := NewChatAgentMessage(ChatAgentMessageTypeText, ChatAgentMessageRoleUser, "test-content")
@@ -187,12 +175,7 @@ func TestChatAgent_SendChatMessage(t *testing.T) {
 	chatAgent := NewChatAgent("testAgent", ai.NewAIConfig("test-key"))
 	chatAgent.Start()
 	defer chatAgent.Kill()
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		w.Header().Set("Content-Type", "application/json")
-		fakeResponse := openai.SampleChatCompletion
-		w.Write([]byte(fakeResponse))
-	}))
+	ts := openai.StartHTTPTestServer(openai.SampleChatCompletion)
 	defer ts.Close()
 	chatAgent.OpenAIChatClient.SetBaseURL(ts.URL)
 	msg := NewChatAgentMessage(ChatAgentMessageTypeText, ChatAgentMessageRoleUser, "test-content")
@@ -206,12 +189,7 @@ func TestChatAgent_SendChatMessageAndWriteResponseToChannel(t *testing.T) {
 	chatAgent := NewChatAgent("testAgent", ai.NewAIConfig("test-key"))
 	chatAgent.Start()
 	defer chatAgent.Kill()
-	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		w.Header().Set("Content-Type", "application/json")
-		fakeResponse := openai.SampleChatCompletion
-		w.Write([]byte(fakeResponse))
-	}))
+	ts := openai.StartHTTPTestServer(openai.SampleChatCompletion)
 	defer ts.Close()
 	chatAgent.OpenAIChatClient.SetBaseURL(ts.URL)
 	msg := NewChatAgentMessage(ChatAgentMessageTypeText, ChatAgentMessageRoleUser, "test-content")
