@@ -111,7 +111,7 @@ func ChatAgentMessageFromJSON(jsonStr string) (*ChatAgentMessage, error) {
 	return &msg, err
 }
 
-func ChatAgentMessageFromOpenAIChatMessage(msg openai.ChatMessage) *ChatAgentMessage {
+func chatAgentMessageFromOpenAIChatMessage(msg openai.ChatMessage) *ChatAgentMessage {
 	return NewChatAgentMessage(ChatAgentMessageTypeText, ChatAgentMessageRole(msg.Role), msg.Content)
 }
 
@@ -154,6 +154,11 @@ type ChatAgent struct {
 	Messages         []ChatAgentMessage
 }
 
+// NewChatAgent creates a new ChatAgent. The ChatAgent can be used to hold a
+// conversation between a language model (currently using OpenAI's APIs), and
+// the user.
+//
+// Remember to call the Start() method on the ChatAgent!
 func NewChatAgent(name string, config *ChatAgentConfig) *ChatAgent {
 	return &ChatAgent{
 		Agent:            NewAgent(name, ChatAgentType, config),
@@ -168,6 +173,14 @@ func (c *ChatAgent) AddMessage(msg ChatAgentMessage) {
 
 func (c *ChatAgent) GetMessages() []ChatAgentMessage {
 	return c.Messages
+}
+
+func (c *ChatAgent) SetMessages(msgs []ChatAgentMessage) {
+	c.Messages = msgs
+}
+
+func (c *ChatAgent) ResetMessages() {
+	c.Messages = []ChatAgentMessage{}
 }
 
 func (c *ChatAgent) GetLastMessage() ChatAgentMessage {
@@ -286,7 +299,7 @@ func buildChatAgentMessageHandler(agent *ChatAgent, msg ChatAgentMessage) Handle
 			return err
 		}
 		openaiResponse := agent.OpenAIChatClient.GetLastMessage()
-		serializedResponse := ChatAgentMessageFromOpenAIChatMessage(openaiResponse)
+		serializedResponse := chatAgentMessageFromOpenAIChatMessage(openaiResponse)
 		agent.Messages = append(agent.Messages, *serializedResponse)
 		return serializedResponse
 	}

@@ -112,6 +112,20 @@ func TestChatAgent_GetMessages(t *testing.T) {
 	assert.Equal(t, 1, len(chatAgent.GetMessages()))
 }
 
+func TestChatAgent_SetMessages(t *testing.T) {
+	chatAgent := NewChatAgent("testAgent", NewChatAgentConfig("test-key"))
+	chatAgent.AddMessage(*NewChatAgentMessage(ChatAgentMessageTypeText, ChatAgentMessageRoleUser, "test-content"))
+	chatAgent.SetMessages([]ChatAgentMessage{})
+	assert.Equal(t, 0, len(chatAgent.GetMessages()))
+}
+
+func TestChatAgent_ResetMessages(t *testing.T) {
+	chatAgent := NewChatAgent("testAgent", NewChatAgentConfig("test-key"))
+	chatAgent.AddMessage(*NewChatAgentMessage(ChatAgentMessageTypeText, ChatAgentMessageRoleUser, "test-content"))
+	chatAgent.ResetMessages()
+	assert.Equal(t, 0, len(chatAgent.GetMessages()))
+}
+
 func TestChatAgent_GetLastMessage(t *testing.T) {
 	chatAgent := NewChatAgent("testAgent", NewChatAgentConfig("test-key"))
 	chatAgent.AddMessage(*NewChatAgentMessage(ChatAgentMessageTypeText, ChatAgentMessageRoleUser, "test-content"))
