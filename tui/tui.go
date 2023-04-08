@@ -194,36 +194,9 @@ func (m model) View() string {
 	return s
 }
 
-func (m model) repromptAI(prompt string) error {
-	currentMessages := m.Conversation.GetMessages()
-	messagesBeforeLast := currentMessages[:len(currentMessages)-1]
-	_, err := m.Conversation.SendSystemMessage(prompt)
-	if err != nil {
-		return err
-	}
-	newMessage := m.Conversation.GetLastMessage()
-	slicedMessages := append(messagesBeforeLast, newMessage)
-	m.Conversation.SetMessages(slicedMessages)
-	return nil
-}
-
-func getMessageContent(msg agent.ChatAgentMessage) (*agent.ChatAgentMessageContent, error) {
-	return agent.ChatAgentMessageContentFromJSON(msg.GetContent())
-}
-
 func (m model) resolveLastMessage() error {
 	lastMessage := m.Conversation.GetLastMessage()
 	if lastMessage.GetRole() == "assistant" {
-		unmarshalledContent, err := getMessageContent(lastMessage)
-		// If the chat model doesn't obey the JSON format, Solus will reprompt the AI until it does.
-		// The reprompt messages and the offending message are deleted from the chat history to avoid clutter.
-		for unmarshalledContent == nil || err != nil {
-			m.repromptAI("Send the last message again wrapped in JSON.")
-			lastMessage = m.Conversation.GetLastMessage()
-		}
-		if err != nil {
-			return err
-		}
 		if lastMessage.IsQueryMessage() {
 			queryResults, err := m.QueryClient.SetType("search").SetQueryText(lastMessage.GetContent()).Execute().GetResults()
 			if err != nil {
@@ -275,13 +248,7 @@ func (m model) formatMessage(chatMsg agent.ChatAgentMessage) string {
 }
 
 func (m model) formatQueryMessage(chatMsg agent.ChatAgentMessage) string {
-	msgContent, err := getMessageContent(chatMsg)
-	if err != nil {
-		msgContent = &agent.ChatAgentMessageContent{
-			Content: chatMsg.GetContent(),
-		}
-	}
-	coloredQuery := styles.specialText.Render(strings.Trim(msgContent.Content, " \n"))
+	coloredQuery := styles.specialText.Render(strings.Trim(chatMsg.GetContent(), " \n"))
 	formatted_message := fmt.Sprintf("Searching: %s\n\n", coloredQuery)
 
 	return formatted_message
@@ -290,13 +257,7 @@ func (m model) formatQueryMessage(chatMsg agent.ChatAgentMessage) string {
 func (m model) formatNonQueryMessage(chatMsg agent.ChatAgentMessage) string {
 	formatted_role := strings.ToUpper(string(chatMsg.GetRole()))
 	markdown_renderer, _ := glamour.NewTermRenderer(glamour.WithAutoStyle())
-	msgContent, err := getMessageContent(chatMsg)
-	if err != nil {
-		msgContent = &agent.ChatAgentMessageContent{
-			Content: chatMsg.GetContent(),
-		}
-	}
-	markdown_content, _ := markdown_renderer.Render(msgContent.Content)
+	markdown_content, _ := markdown_renderer.Render(chatMsg.GetContent())
 	formatted_message := fmt.Sprintf("[%s]: %s", formatted_role, markdown_content)
 
 	return formatted_message

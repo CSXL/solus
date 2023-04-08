@@ -248,7 +248,16 @@ func (c *ChatAgent) SendChatMessage(msg ChatAgentMessage) (*ChatAgentMessage, er
 		return nil, err
 	}
 	msg.Content = updatedContent
-	return c.sendMessage(msg)
+	aiMessage, err := c.sendMessage(msg)
+	if err != nil {
+		return nil, err
+	}
+	processedAIMessage, err := c.ProcessChatMessage(*aiMessage, true)
+	if err != nil {
+		return nil, err
+	}
+	c.Messages[len(c.Messages)-1] = processedAIMessage
+	return &processedAIMessage, nil
 }
 
 // SendChatMessageAndWriteResponseToChannel serializes and sends a
@@ -267,6 +276,20 @@ func (c *ChatAgent) SendChatMessageAndWriteResponseToChannel(msg ChatAgentMessag
 	}
 	channel <- *response
 	return nil
+}
+
+func (c *ChatAgent) ProcessChatMessage(msg ChatAgentMessage, convertIfInvalid bool) (ChatAgentMessage, error) {
+	currentMsgContent := msg.GetContent()
+	processedMsgContent, err := ChatAgentMessageContentFromJSON(currentMsgContent)
+	if err != nil && convertIfInvalid {
+		return msg, nil
+	}
+	if err != nil && !convertIfInvalid {
+		return msg, err
+	}
+	msg.Type = ChatAgentMessageType(processedMsgContent.Type)
+	msg.Content = processedMsgContent.Content
+	return msg, nil
 }
 
 type ChatAgentTaskType string
