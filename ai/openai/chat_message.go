@@ -1,4 +1,4 @@
-package ai
+package openai
 
 import (
 	"context"
@@ -73,6 +73,10 @@ func (c *ChatClient) GetMessages() []ChatMessage {
 
 func (c *ChatClient) SetMessages(messages []ChatMessage) {
 	c.messages = messages
+}
+
+func (c *ChatClient) SetBaseURL(baseURL string) {
+	c.openAIClient = NewOpenAIWithBaseURL("test", baseURL)
 }
 
 func (c *ChatClient) ClearMessages() {
