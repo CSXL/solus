@@ -330,6 +330,10 @@ func (a *Agent) Start() {
 
 func (a *Agent) Stop() {
 	logger.Infof("Stopping agent <ID: %s, Name: %s>", a.GetID(), a.GetName())
+	if !a.isRunning {
+		logger.Infof("Agent <ID: %s, Name: %s> is not running. Stop canceled.", a.GetID(), a.GetName())
+		return
+	}
 	close(a.taskQueue)
 	if a.sequentialTaskQueues != nil {
 		for taskType := range a.sequentialTaskQueues {
@@ -344,6 +348,10 @@ func (a *Agent) Stop() {
 
 func (a *Agent) Kill() {
 	logger.Infof("Killing agent <ID: %s, Name: %s>", a.GetID(), a.GetName())
+	if !a.isRunning {
+		logger.Infof("Agent <ID: %s, Name: %s> is not running. Kill canceled.", a.GetID(), a.GetName())
+		return
+	}
 	a.killChannel <- true
 	for task := range a.runningTasks {
 		(*a.runningTasks[task]).Kill()
