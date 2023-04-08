@@ -320,6 +320,10 @@ func (a *Agent) runSequentialTaskEventLoop() {
 
 func (a *Agent) Start() {
 	logger.Infof("Starting agent <ID: %s, Name: %s>", a.GetID(), a.GetName())
+	if a.isRunning {
+		logger.Infof("Agent <ID: %s, Name: %s> is already running. Start canceled.", a.GetID(), a.GetName())
+		return
+	}
 	a.isRunning = true
 	a.incrementTaskLoopRoutines()
 	go a.runTaskLoop()

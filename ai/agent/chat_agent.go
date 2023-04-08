@@ -210,6 +210,12 @@ func (c *ChatAgent) sendMessage(msg ChatAgentMessage) (*ChatAgentMessage, error)
 		return nil, err
 	}
 	messageTask.AwaitCompletion()
+	// Checks for error in result by attempting to type assert to ChatAgentMessage
+	// If the type assertion fails, the task failed and we return the error
+	_, ok := messageTask.GetResult().(*ChatAgentMessage)
+	if !ok {
+		return nil, messageTask.GetResult().(error)
+	}
 	aiResponseMessage := messageTask.GetResult().(*ChatAgentMessage)
 	return aiResponseMessage, nil
 }
