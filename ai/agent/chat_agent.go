@@ -124,6 +124,10 @@ func ChatAgentMessageContentFromJSON(jsonMessage string) (*ChatAgentMessageConte
 	return &content, nil
 }
 
+func ChatAgentMessageContentFromChatAgentMessage(msg ChatAgentMessage) *ChatAgentMessageContent {
+	return NewChatAgentMessageContent(string(msg.Type), msg.Content)
+}
+
 type ChatAgent struct {
 	*Agent
 	OpenAIChatClient *openai.ChatClient
@@ -184,6 +188,15 @@ func (c *ChatAgent) SendMessage(msg ChatAgentMessage) (*ChatAgentMessage, error)
 	messageTask.AwaitCompletion()
 	aiResponseMessage := messageTask.GetResult().(*ChatAgentMessage)
 	return aiResponseMessage, nil
+}
+
+func (c *ChatAgent) SendChatMessage(msg ChatAgentMessage) (*ChatAgentMessage, error) {
+	updatedContent, err := ChatAgentMessageContentFromChatAgentMessage(msg).ToJSON()
+	if err != nil {
+		return nil, err
+	}
+	msg.Content = updatedContent
+	return c.SendMessage(msg)
 }
 
 type ChatAgentTaskType string
