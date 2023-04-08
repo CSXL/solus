@@ -1,12 +1,19 @@
 package agent
 
 import (
+	"io"
 	"testing"
 
 	"github.com/CSXL/solus/ai"
 	"github.com/CSXL/solus/ai/openai"
+	"github.com/google/logger"
 	"github.com/stretchr/testify/assert"
 )
+
+func TestMain(m *testing.M) {
+	logger.Init("ChatAgentTest", true, false, io.Discard)
+	m.Run()
+}
 
 func TestNewChatAgentMessage(t *testing.T) {
 	chatAgentMessage := NewChatAgentMessage(ChatAgentMessageTypeText, ChatAgentMessageRoleUser, "test-content")
@@ -64,14 +71,14 @@ func TestChatAgentMessage_FromJSON(t *testing.T) {
 func TestNewChatAgentMessageContent(t *testing.T) {
 	msgType := "user_message"
 	msgContent := "test-content"
-	chatAgentMessageContent := NewChatAgentMessageContent(msgType, msgContent)
+	chatAgentMessageContent := newChatAgentMessageContent(msgType, msgContent)
 	assert.Equal(t, msgContent, chatAgentMessageContent.Content)
 }
 
 func TestChatAgentMessageContent_ToJSON(t *testing.T) {
 	msgType := "user_message"
 	msgContent := "test-content"
-	chatAgentMessageContent := NewChatAgentMessageContent(msgType, msgContent)
+	chatAgentMessageContent := newChatAgentMessageContent(msgType, msgContent)
 	json, err := chatAgentMessageContent.ToJSON()
 	assert.Nil(t, err)
 	assert.Equal(t, `{"type":"user_message","content":"test-content"}`, json)
@@ -80,11 +87,11 @@ func TestChatAgentMessageContent_ToJSON(t *testing.T) {
 func TestChatAgentMessageContent_FromJSON(t *testing.T) {
 	msgType := "user_message"
 	msgContent := "test-content"
-	chatAgentMessageContent := NewChatAgentMessageContent(msgType, msgContent)
+	chatAgentMessageContent := newChatAgentMessageContent(msgType, msgContent)
 	json, err := chatAgentMessageContent.ToJSON()
 	assert.Nil(t, err)
 	assert.Equal(t, `{"type":"user_message","content":"test-content"}`, json)
-	chatAgentMessageContent, err = ChatAgentMessageContentFromJSON(json)
+	chatAgentMessageContent, err = chatAgentMessageContentFromJSON(json)
 	assert.Nil(t, err)
 	assert.Equal(t, msgType, chatAgentMessageContent.Type)
 	assert.Equal(t, msgContent, chatAgentMessageContent.Content)
@@ -183,6 +190,32 @@ func TestChatAgent_SendChatMessage(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotNil(t, aiResponse)
 	assert.Equal(t, 2, len(chatAgent.Messages))
+}
+
+func TestChatAgent_ProcessChatMessage(t *testing.T) {
+	chatAgent := NewChatAgent("testAgent", ai.NewAIConfig("test-key"))
+	chatAgent.Start()
+	defer chatAgent.Kill()
+	ts := openai.StartHTTPTestServer(openai.SampleChatJSONCompletion)
+	defer ts.Close()
+	chatAgent.OpenAIChatClient.SetBaseURL(ts.URL)
+	msg := NewChatAgentMessage(ChatAgentMessageTypeText, ChatAgentMessageRoleAssistant, "test-content")
+	aiResponse, err := chatAgent.ProcessChatMessage(*msg)
+	assert.Nil(t, err)
+	assert.NotNil(t, aiResponse)
+}
+
+func TestChatAgent_ProcessChatMessageWithNonJSONMessage(t *testing.T) {
+	chatAgent := NewChatAgent("testAgent", ai.NewAIConfig("test-key"))
+	chatAgent.Start()
+	defer chatAgent.Kill()
+	ts := openai.StartHTTPTestServer(openai.SampleChatCompletion)
+	defer ts.Close()
+	chatAgent.OpenAIChatClient.SetBaseURL(ts.URL)
+	msg := NewChatAgentMessage(ChatAgentMessageTypeText, ChatAgentMessageRoleAssistant, "test-content")
+	aiResponse, err := chatAgent.ProcessChatMessage(*msg)
+	assert.Nil(t, err)
+	assert.NotNil(t, aiResponse)
 }
 
 func TestChatAgent_SendChatMessageAndWriteResponseToChannel(t *testing.T) {

@@ -108,29 +108,65 @@ func (c *ChatAgentMessage) ToJSON() (string, error) {
 	return string(jsonBytes), err
 }
 
+func (c *ChatAgentMessage) mutateContentFromNonJSONMessage() error {
+	mutatedMsgContent := chatAgentMessageContentFromChatAgentMessage(*c)
+	jsonMsgContent, err := mutatedMsgContent.ToJSON()
+	if err != nil {
+		return err
+	}
+	c.Type = ChatAgentMessageTypeText
+	c.Content = jsonMsgContent
+	return nil
+}
+
+func (c *ChatAgentMessage) Serialize() error {
+	msgContent, err := chatAgentMessageContentFromJSON(c.GetContent())
+	if err != nil {
+		return nil
+	}
+	c.Type = ChatAgentMessageType(msgContent.Type)
+	c.Content = msgContent.Content
+	return nil
+}
+
+func (c *ChatAgentMessage) Marshal() error {
+	err := c.Serialize()
+	if err != nil {
+		return err
+	}
+	return c.mutateContentFromNonJSONMessage()
+}
+
+func (c *ChatAgentMessage) ToOpenAIChatMessage() *openai.ChatMessage {
+	return &openai.ChatMessage{
+		Role:    string(c.Role),
+		Content: c.Content,
+	}
+}
+
 func ChatAgentMessageFromJSON(jsonStr string) (*ChatAgentMessage, error) {
 	var msg ChatAgentMessage
 	err := json.Unmarshal([]byte(jsonStr), &msg)
 	return &msg, err
 }
 
-func ChatAgentMessageFromOpenAIChatMessage(msg openai.ChatMessage) *ChatAgentMessage {
-	return NewChatAgentMessage(ChatAgentMessageTypeText, ChatAgentMessageRole(msg.Role), msg.Content)
+func ChatAgentMessageFromOpenAIChatMessage(c openai.ChatMessage) *ChatAgentMessage {
+	return NewChatAgentMessage(ChatAgentMessageTypeText, ChatAgentMessageRole(c.Role), c.Content)
 }
 
-type ChatAgentMessageContent struct {
+type chatAgentMessageContent struct {
 	Type    string `json:"type"`
 	Content string `json:"content"`
 }
 
-func NewChatAgentMessageContent(msgType string, content string) *ChatAgentMessageContent {
-	return &ChatAgentMessageContent{
+func newChatAgentMessageContent(msgType string, content string) *chatAgentMessageContent {
+	return &chatAgentMessageContent{
 		Type:    msgType,
 		Content: content,
 	}
 }
 
-func (c *ChatAgentMessageContent) ToJSON() (string, error) {
+func (c *chatAgentMessageContent) ToJSON() (string, error) {
 	json, err := json.Marshal(c)
 	if err != nil {
 		return "", err
@@ -138,8 +174,8 @@ func (c *ChatAgentMessageContent) ToJSON() (string, error) {
 	return string(json), nil
 }
 
-func ChatAgentMessageContentFromJSON(jsonMessage string) (*ChatAgentMessageContent, error) {
-	var content ChatAgentMessageContent
+func chatAgentMessageContentFromJSON(jsonMessage string) (*chatAgentMessageContent, error) {
+	var content chatAgentMessageContent
 	err := json.Unmarshal([]byte(jsonMessage), &content)
 	if err != nil {
 		return nil, err
@@ -147,8 +183,8 @@ func ChatAgentMessageContentFromJSON(jsonMessage string) (*ChatAgentMessageConte
 	return &content, nil
 }
 
-func ChatAgentMessageContentFromChatAgentMessage(msg ChatAgentMessage) *ChatAgentMessageContent {
-	return NewChatAgentMessageContent(string(msg.Type), msg.Content)
+func chatAgentMessageContentFromChatAgentMessage(msg ChatAgentMessage) *chatAgentMessageContent {
+	return newChatAgentMessageContent(string(msg.Type), msg.Content)
 }
 
 type ChatAgent struct {
@@ -171,7 +207,9 @@ func NewChatAgent(name string, config *ai.AIConfig) *ChatAgent {
 }
 
 func (c *ChatAgent) AddMessage(msg ChatAgentMessage) {
+	msg.Serialize()
 	c.Messages = append(c.Messages, msg)
+	c.syncMessages()
 }
 
 func (c *ChatAgent) GetMessages() []ChatAgentMessage {
@@ -180,10 +218,43 @@ func (c *ChatAgent) GetMessages() []ChatAgentMessage {
 
 func (c *ChatAgent) SetMessages(msgs []ChatAgentMessage) {
 	c.Messages = msgs
+	c.syncMessages()
+}
+
+func (c *ChatAgent) getMarshalledMessages() []ChatAgentMessage {
+	marshalledMessages := []ChatAgentMessage{}
+	for _, msg := range c.Messages {
+		msg.Marshal()
+		marshalledMessages = append(marshalledMessages, msg)
+	}
+	return marshalledMessages
+}
+
+func (c *ChatAgent) getSerializedMessages() []ChatAgentMessage {
+	serializedMessages := []ChatAgentMessage{}
+	for _, msg := range c.Messages {
+		msg.Serialize()
+		serializedMessages = append(serializedMessages, msg)
+	}
+	return serializedMessages
+}
+
+func (c *ChatAgent) serializeAllMessages() {
+	c.Messages = c.getSerializedMessages()
+}
+
+func (c *ChatAgent) syncMessages() {
+	convertedMessages := []openai.ChatMessage{}
+	marshalledMessages := c.getMarshalledMessages()
+	for _, msg := range marshalledMessages {
+		convertedMessages = append(convertedMessages, *msg.ToOpenAIChatMessage())
+	}
+	c.OpenAIChatClient.SetMessages(convertedMessages)
 }
 
 func (c *ChatAgent) ResetMessages() {
 	c.Messages = []ChatAgentMessage{}
+	c.syncMessages()
 }
 
 func (c *ChatAgent) GetLastMessage() ChatAgentMessage {
@@ -233,7 +304,7 @@ func (c *ChatAgent) sendMessage(msg ChatAgentMessage) (*ChatAgentMessage, error)
 	return aiResponseMessage, nil
 }
 
-// SendChatMessage serializes and sends a ChatAgentMessage to the agent.
+// SendChatMessage marshalls and sends a ChatAgentMessage to the agent.
 // The agent will respond with a ChatAgentMessage that is returned.
 // Note: The content is serialized to JSON before sending in the schema:
 //
@@ -243,16 +314,12 @@ func (c *ChatAgent) sendMessage(msg ChatAgentMessage) (*ChatAgentMessage, error)
 //	}
 func (c *ChatAgent) SendChatMessage(msg ChatAgentMessage) (*ChatAgentMessage, error) {
 	logger.Infof("Sending chat message to ChatAgent <ID: %s, Name: %s>: %s", c.GetID(), c.GetName(), msg.Content)
-	updatedContent, err := ChatAgentMessageContentFromChatAgentMessage(msg).ToJSON()
-	if err != nil {
-		return nil, err
-	}
-	msg.Content = updatedContent
+	msg.Marshal()
 	aiMessage, err := c.sendMessage(msg)
 	if err != nil {
 		return nil, err
 	}
-	processedAIMessage, err := c.ProcessChatMessage(*aiMessage, true)
+	processedAIMessage, err := c.ProcessChatMessage(*aiMessage)
 	if err != nil {
 		return nil, err
 	}
@@ -278,18 +345,9 @@ func (c *ChatAgent) SendChatMessageAndWriteResponseToChannel(msg ChatAgentMessag
 	return nil
 }
 
-func (c *ChatAgent) ProcessChatMessage(msg ChatAgentMessage, convertIfInvalid bool) (ChatAgentMessage, error) {
-	currentMsgContent := msg.GetContent()
-	processedMsgContent, err := ChatAgentMessageContentFromJSON(currentMsgContent)
-	if err != nil && convertIfInvalid {
-		return msg, nil
-	}
-	if err != nil && !convertIfInvalid {
-		return msg, err
-	}
-	msg.Type = ChatAgentMessageType(processedMsgContent.Type)
-	msg.Content = processedMsgContent.Content
-	return msg, nil
+func (c *ChatAgent) ProcessChatMessage(msg ChatAgentMessage) (ChatAgentMessage, error) {
+	err := msg.Serialize()
+	return msg, err
 }
 
 type ChatAgentTaskType string
@@ -334,7 +392,13 @@ func buildChatAgentMessageHandler(agent *ChatAgent, msg ChatAgentMessage) Handle
 		}
 		openaiResponse := agent.OpenAIChatClient.GetLastMessage()
 		serializedResponse := ChatAgentMessageFromOpenAIChatMessage(openaiResponse)
-		agent.Messages = append(agent.Messages, *serializedResponse)
+		processedResponse, err := agent.ProcessChatMessage(*serializedResponse)
+		if err != nil {
+			return err
+		}
+		agent.Messages = append(agent.Messages, processedResponse)
+		agent.syncMessages()
+		agent.serializeAllMessages()
 		return serializedResponse
 	}
 }
