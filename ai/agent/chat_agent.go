@@ -19,9 +19,10 @@ const (
 	ChatAgentMessageRoleAssistant ChatAgentMessageRole = "assistant"
 	ChatAgentMessageRoleSystem    ChatAgentMessageRole = "system"
 	// ChatAgent Message Types
-	ChatAgentMessageTypeText ChatAgentMessageType = "text"
-	ChatAgentMessageTypeFile ChatAgentMessageType = "file"
-	ChatAgentMessageTypeLink ChatAgentMessageType = "link"
+	ChatAgentMessageTypeText  ChatAgentMessageType = "text"
+	ChatAgentMessageTypeFile  ChatAgentMessageType = "file"
+	ChatAgentMessageTypeLink  ChatAgentMessageType = "link"
+	ChatAgentMessageTypeQuery ChatAgentMessageType = "query"
 )
 
 type ChatAgentConfig struct {
@@ -40,6 +41,21 @@ type ChatAgentMessage struct {
 	Content string
 }
 
+// NewChatAgentMessage creates a new ChatAgentMessage. This message can be sent
+// to the ChatAgent to get a response and completion.
+//
+// msgType: The type of message. Can be one of the following:
+// - ChatAgentMessageTypeText
+// - ChatAgentMessageTypeFile
+// - ChatAgentMessageTypeLink
+// - ChatAgentMessageTypeQuery
+//
+// role: The role of the message. Can be one of the following:
+// - ChatAgentMessageRoleUser
+// - ChatAgentMessageRoleAssistant
+// - ChatAgentMessageRoleSystem
+//
+// content: The content of the message. The content can only be a string.
 func NewChatAgentMessage(msgType ChatAgentMessageType, role ChatAgentMessageRole, content string) *ChatAgentMessage {
 	return &ChatAgentMessage{
 		Type:    msgType,
@@ -62,6 +78,10 @@ func (c *ChatAgentMessage) IsFileMessage() bool {
 
 func (c *ChatAgentMessage) IsLinkMessage() bool {
 	return c.IsMessageOfType(ChatAgentMessageTypeLink)
+}
+
+func (c *ChatAgentMessage) IsQueryMessage() bool {
+	return c.IsMessageOfType(ChatAgentMessageTypeQuery)
 }
 
 func (c *ChatAgentMessage) IsMessageOfRole(role ChatAgentMessageRole) bool {
@@ -165,7 +185,7 @@ func (c *ChatAgent) GetLastMessageRole() ChatAgentMessageRole {
 	return c.GetLastMessage().Role
 }
 
-func (c *ChatAgent) SendMessageToAgent(msg ChatAgentMessage) (*ChatAgentTask, error) {
+func (c *ChatAgent) sendMessageToAgent(msg ChatAgentMessage) (*ChatAgentTask, error) {
 	if !c.IsRunning() {
 		logger.Info("Note: Agent is not running, message will be queued but not sent.")
 	}
@@ -180,8 +200,8 @@ func (c *ChatAgent) SendMessageToAgent(msg ChatAgentMessage) (*ChatAgentTask, er
 	return sendTask, err
 }
 
-func (c *ChatAgent) SendMessage(msg ChatAgentMessage) (*ChatAgentMessage, error) {
-	messageTask, err := c.SendMessageToAgent(msg)
+func (c *ChatAgent) sendMessage(msg ChatAgentMessage) (*ChatAgentMessage, error) {
+	messageTask, err := c.sendMessageToAgent(msg)
 	if err != nil {
 		return nil, err
 	}
@@ -190,13 +210,39 @@ func (c *ChatAgent) SendMessage(msg ChatAgentMessage) (*ChatAgentMessage, error)
 	return aiResponseMessage, nil
 }
 
+// SendChatMessage serializes and sends a ChatAgentMessage to the agent.
+// The agent will respond with a ChatAgentMessage that is returned.
+// Note: The content is serialized to JSON before sending in the schema:
+//
+//	{
+//	  "type": string,   // Your message type (e.g. "text", "file", "link", "query")
+//	  "content": string // Your message content (e.g. "Hello", "https://example.com", "What is the weather like in 2023?")
+//	}
 func (c *ChatAgent) SendChatMessage(msg ChatAgentMessage) (*ChatAgentMessage, error) {
 	updatedContent, err := ChatAgentMessageContentFromChatAgentMessage(msg).ToJSON()
 	if err != nil {
 		return nil, err
 	}
 	msg.Content = updatedContent
-	return c.SendMessage(msg)
+	return c.sendMessage(msg)
+}
+
+// SendChatMessageAndWriteResponseToChannel serializes and sends a
+// ChatAgentMessage to the agent.
+// The agent will write the response to the provided channel.
+// Note: The content is serialized to JSON before sending in the schema:
+//
+//	{
+//	  "type": string,   // Your message type (e.g. "text", "file", "link", "query")
+//	  "content": string // Your message content (e.g. "Hello", "https://example.com", "What is the weather like in 2023?")
+//	}
+func (c *ChatAgent) SendChatMessageAndWriteResponseToChannel(msg ChatAgentMessage, channel chan ChatAgentMessage) error {
+	response, err := c.SendChatMessage(msg)
+	if err != nil {
+		return err
+	}
+	channel <- *response
+	return nil
 }
 
 type ChatAgentTaskType string
@@ -213,7 +259,7 @@ type ChatAgentTask struct {
 func NewChatAgentTask(agent *ChatAgent, taskType ChatAgentTaskType, payload ChatAgentTaskPayload) (*ChatAgentTask, error) {
 	isSequential := true
 	agentTaskType := NewAgentTaskType(string(taskType), isSequential)
-	handler, err := BuildChatAgentHandler(agent, taskType, payload)
+	handler, err := buildChatAgentHandler(agent, taskType, payload)
 	if err != nil {
 		return nil, err
 	}
@@ -222,17 +268,17 @@ func NewChatAgentTask(agent *ChatAgent, taskType ChatAgentTaskType, payload Chat
 	}, nil
 }
 
-func BuildChatAgentHandler(agent *ChatAgent, taskType ChatAgentTaskType, payload ChatAgentTaskPayload) (HandlerFunction, error) {
+func buildChatAgentHandler(agent *ChatAgent, taskType ChatAgentTaskType, payload ChatAgentTaskPayload) (HandlerFunction, error) {
 	switch taskType {
 	case ChatAgentTaskTypeSendMessage:
 		msg := payload.(ChatAgentMessage)
-		return BuildChatAgentMessageHandler(agent, msg), nil
+		return buildChatAgentMessageHandler(agent, msg), nil
 	default:
 		return nil, fmt.Errorf("unknown task type: %s", taskType)
 	}
 }
 
-func BuildChatAgentMessageHandler(agent *ChatAgent, msg ChatAgentMessage) HandlerFunction {
+func buildChatAgentMessageHandler(agent *ChatAgent, msg ChatAgentMessage) HandlerFunction {
 	return func(kill chan bool) interface{} {
 		agent.AddMessage(msg)
 		err := agent.OpenAIChatClient.SendMessage(msg.Content, string(msg.Role))

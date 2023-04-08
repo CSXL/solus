@@ -32,6 +32,7 @@ func TestChatAgentMessage_IsXTypeMessage(t *testing.T) {
 	assert.True(t, chatAgentMessage.IsTextMessage())
 	assert.False(t, chatAgentMessage.IsFileMessage())
 	assert.False(t, chatAgentMessage.IsLinkMessage())
+	assert.False(t, chatAgentMessage.IsQueryMessage())
 }
 
 func TestChatAgentMessage_IsMessageOfRole(t *testing.T) {
@@ -147,7 +148,7 @@ func TestChatAgent_SendMessageToAgent(t *testing.T) {
 	defer ts.Close()
 	chatAgent.OpenAIChatClient.SetBaseURL(ts.URL)
 	msg := NewChatAgentMessage(ChatAgentMessageTypeText, ChatAgentMessageRoleUser, "test-content")
-	messageTask, err := chatAgent.SendMessageToAgent(*msg)
+	messageTask, err := chatAgent.sendMessageToAgent(*msg)
 	assert.Nil(t, err)
 	messageTask.AwaitCompletion()
 	assert.Equal(t, 2, len(chatAgent.Messages))
@@ -166,7 +167,7 @@ func TestChatAgent_SendMessage(t *testing.T) {
 	defer ts.Close()
 	chatAgent.OpenAIChatClient.SetBaseURL(ts.URL)
 	msg := NewChatAgentMessage(ChatAgentMessageTypeText, ChatAgentMessageRoleUser, "test-content")
-	aiResponse, err := chatAgent.SendMessage(*msg)
+	aiResponse, err := chatAgent.sendMessage(*msg)
 	assert.Nil(t, err)
 	assert.NotNil(t, aiResponse)
 	assert.Equal(t, 2, len(chatAgent.Messages))
@@ -187,6 +188,26 @@ func TestChatAgent_SendChatMessage(t *testing.T) {
 	msg := NewChatAgentMessage(ChatAgentMessageTypeText, ChatAgentMessageRoleUser, "test-content")
 	aiResponse, err := chatAgent.SendChatMessage(*msg)
 	assert.Nil(t, err)
+	assert.NotNil(t, aiResponse)
+	assert.Equal(t, 2, len(chatAgent.Messages))
+}
+
+func TestChatAgent_SendChatMessageAndWriteResponseToChannel(t *testing.T) {
+	chatAgent := NewChatAgent("testAgent", NewChatAgentConfig("test-key"))
+	chatAgent.Start()
+	defer chatAgent.Kill()
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Header().Set("Content-Type", "application/json")
+		fakeResponse := openai.SampleChatCompletion
+		w.Write([]byte(fakeResponse))
+	}))
+	defer ts.Close()
+	chatAgent.OpenAIChatClient.SetBaseURL(ts.URL)
+	msg := NewChatAgentMessage(ChatAgentMessageTypeText, ChatAgentMessageRoleUser, "test-content")
+	messageChannel := make(chan ChatAgentMessage)
+	go chatAgent.SendChatMessageAndWriteResponseToChannel(*msg, messageChannel)
+	aiResponse := <-messageChannel
 	assert.NotNil(t, aiResponse)
 	assert.Equal(t, 2, len(chatAgent.Messages))
 }
