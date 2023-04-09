@@ -4,28 +4,28 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-    - name: Checkout
-      uses: actions/checkout@v3
-    - name: Setup Go environment
-      uses: actions/setup-go@v4.0.0
-      with:
-        go-version-file: go.mod
-        cache: true
-        cache-dependency-path: go.sum
-    - name: Build Project
-      run: make build
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Setup Go environment
+        uses: actions/setup-go@v4.0.0
+        with:
+          go-version-file: go.mod
+          cache: true
+          cache-dependency-path: go.sum
+      - name: Build Project
+        run: make build
   trunk_check:
     runs-on: ubuntu-latest
     permissions:
       checks: write
     steps:
-    - name: Checkout
-      uses: actions/checkout@v3
-    - name: Setup Go environment
-      uses: actions/setup-go@v4.0.0
-      with:
-        go-version-file: go.mod
-        cache: true
-        cache-dependency-path: go.sum
-    - name: Trunk Check
-      uses: trunk-io/trunk-action@v1
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Setup Go environment
+        uses: actions/setup-go@v4.0.0
+        with:
+          go-version-file: go.mod
+          cache: true
+          cache-dependency-path: go.sum
+      - name: Trunk Check
+        uses: trunk-io/trunk-action@v1
