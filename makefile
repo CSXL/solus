@@ -19,6 +19,11 @@ test:
 	@go test ./...
 	@echo "Done."
 
+lint:
+	@echo "Linting..."
+	@trunk fmt
+	@echo "Done."
+
 clean:
 	@echo "Cleaning..."
 	@rm -f solus.out

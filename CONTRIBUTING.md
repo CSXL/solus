@@ -14,6 +14,7 @@ Thank you for joining us on this journey to automating the development process.
     - [TUI Configuration](#tui-configuration)
     - [Building and Running the Project](#building-and-running-the-project)
     - [Running Tests](#running-tests)
+    - [Linting](#linting)
     - [Debugging](#debugging)
   - [Contributing](#contributing)
     - [Code of Conduct](#code-of-conduct)
@@ -72,6 +73,10 @@ To build a project binary, run `make build`, and a binary will be written to `so
 
 Run `make test` to run all the unit tests in the project. We are using VSCode's [Go extension](https://marketplace.visualstudio.com/items?itemName=golang.go) for testing, so you can also run tests from within VSCode.
 
+### Linting
+
+Linting is done with [trunk](https://trunk.io), there are common IDE plugins for it. The binary is provided in the repo, so you can run `./trunk fmt` (`make lint`) or `./trunk fmt --all` to lint the project.
+
 ### Debugging
 
 We are using [Delve](https://github.com/go-delve/delve) for debugging integrated with VSCode's [Go extension](https://marketplace.visualstudio.com/items?itemName=golang.go). You can run the project in debug mode by pressing `F5` in VSCode.
@@ -89,8 +94,6 @@ Please report unacceptable behavior to [opensource@csxlabs.org](mailto:opensourc
 ### Contributing Guidelines
 
 Follow our [AI Principles](#ai-principles) when contributing to the project. If you have any questions about our code of conduct, guidelines, or operation, feel free to reach out to us at [opensource@csxlabs.org](mailto:opensource@csxlabs.org).
-
-Linting is done with [trunk](https://trunk.io), there are common IDE plugins for it.
 
 ### Types of Contributions
 
