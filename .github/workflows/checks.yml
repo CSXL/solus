@@ -9,7 +9,6 @@ jobs:
     - name: Setup Go environment
       uses: actions/setup-go@v4.0.0
       with:
-        go-version: 1.19
         go-version-file: go.mod
         cache: true
         cache-dependency-path: go.sum
@@ -25,7 +24,6 @@ jobs:
     - name: Setup Go environment
       uses: actions/setup-go@v4.0.0
       with:
-        go-version: 1.19
         go-version-file: go.mod
         cache: true
         cache-dependency-path: go.sum
