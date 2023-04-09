@@ -60,6 +60,8 @@ func TestQueryBuilder_Execute(t *testing.T) {
 				},
 			},
 		}
+		// We know the response is valid so we don't need error checking.
+		// trunk-ignore(golangci-lint/errcheck)
 		json.NewEncoder(w).Encode(response)
 	}))
 	q := NewQuery(ctx, *searchClientConfig)

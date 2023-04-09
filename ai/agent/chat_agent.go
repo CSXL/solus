@@ -119,21 +119,20 @@ func (c *ChatAgentMessage) mutateContentFromNonJSONMessage() error {
 	return nil
 }
 
-func (c *ChatAgentMessage) Serialize() error {
+func (c *ChatAgentMessage) Serialize() {
 	msgContent, err := chatAgentMessageContentFromJSON(c.GetContent())
 	if err != nil {
-		return nil
+		// We don't need to handle this error because we can just assume that the
+		// message is not a JSON message.
+		// Removing this will result in a segfault because the msgContent will be nil.
+		return
 	}
 	c.Type = ChatAgentMessageType(msgContent.Type)
 	c.Content = msgContent.Content
-	return nil
 }
 
 func (c *ChatAgentMessage) Marshal() error {
-	err := c.Serialize()
-	if err != nil {
-		return err
-	}
+	c.Serialize()
 	return c.mutateContentFromNonJSONMessage()
 }
 
@@ -224,6 +223,8 @@ func (c *ChatAgent) SetMessages(msgs []ChatAgentMessage) {
 func (c *ChatAgent) getMarshalledMessages() []ChatAgentMessage {
 	marshalledMessages := []ChatAgentMessage{}
 	for _, msg := range c.Messages {
+		// Ignoring error for tolerance of AI Messages.
+		// trunk-ignore(golangci-lint/errcheck)
 		msg.Marshal()
 		marshalledMessages = append(marshalledMessages, msg)
 	}
@@ -314,12 +315,14 @@ func (c *ChatAgent) sendMessage(msg ChatAgentMessage) (*ChatAgentMessage, error)
 //	}
 func (c *ChatAgent) SendChatMessage(msg ChatAgentMessage) (*ChatAgentMessage, error) {
 	logger.Infof("Sending chat message to ChatAgent <ID: %s, Name: %s>: %s", c.GetID(), c.GetName(), msg.Content)
+	// Ignoring error for tolerance of AI Messages.
+	// trunk-ignore(golangci-lint/errcheck)
 	msg.Marshal()
 	aiMessage, err := c.sendMessage(msg)
 	if err != nil {
 		return nil, err
 	}
-	processedAIMessage, err := c.ProcessChatMessage(*aiMessage)
+	processedAIMessage := c.ProcessChatMessage(*aiMessage)
 	if err != nil {
 		return nil, err
 	}
@@ -345,9 +348,9 @@ func (c *ChatAgent) SendChatMessageAndWriteResponseToChannel(msg ChatAgentMessag
 	return nil
 }
 
-func (c *ChatAgent) ProcessChatMessage(msg ChatAgentMessage) (ChatAgentMessage, error) {
-	err := msg.Serialize()
-	return msg, err
+func (c *ChatAgent) ProcessChatMessage(msg ChatAgentMessage) ChatAgentMessage {
+	msg.Serialize()
+	return msg
 }
 
 type ChatAgentTaskType string
@@ -392,10 +395,7 @@ func buildChatAgentMessageHandler(agent *ChatAgent, msg ChatAgentMessage) Handle
 		}
 		openaiResponse := agent.OpenAIChatClient.GetLastMessage()
 		serializedResponse := ChatAgentMessageFromOpenAIChatMessage(openaiResponse)
-		processedResponse, err := agent.ProcessChatMessage(*serializedResponse)
-		if err != nil {
-			return err
-		}
+		processedResponse := agent.ProcessChatMessage(*serializedResponse)
 		agent.Messages = append(agent.Messages, processedResponse)
 		agent.syncMessages()
 		agent.serializeAllMessages()

@@ -75,6 +75,8 @@ Please report unacceptable behavior to [opensource@csxlabs.org](mailto:opensourc
 ### Contributing Guidelines
 Follow our [AI Principles](#ai-principles) when contributing to the project. If you have any questions about our code of conduct, guidelines, or operation, feel free to reach out to us at [opensource@csxlabs.org](mailto:opensource@csxlabs.org).
 
+Linting is done with [trunk](https://trunk.io), there are common IDE plugins for it.
+
 ### Types of Contributions
 We welcome contributions of all kinds. Here are some examples of the types of contributions we are looking for:
 * **Code:** Found a bug, want to fill a TODO, or want to enhance our operation? File an issue with a pull request and our open source team will review your changes. If you need help setting up the project or have any questions about the codebase, feel free to reach out to us at [opensource@csxlabs.org](mailto:opensource@csxlabs.org).

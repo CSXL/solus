@@ -200,8 +200,7 @@ func TestChatAgent_ProcessChatMessage(t *testing.T) {
 	defer ts.Close()
 	chatAgent.OpenAIChatClient.SetBaseURL(ts.URL)
 	msg := NewChatAgentMessage(ChatAgentMessageTypeText, ChatAgentMessageRoleAssistant, "test-content")
-	aiResponse, err := chatAgent.ProcessChatMessage(*msg)
-	assert.Nil(t, err)
+	aiResponse := chatAgent.ProcessChatMessage(*msg)
 	assert.NotNil(t, aiResponse)
 }
 
@@ -213,8 +212,7 @@ func TestChatAgent_ProcessChatMessageWithNonJSONMessage(t *testing.T) {
 	defer ts.Close()
 	chatAgent.OpenAIChatClient.SetBaseURL(ts.URL)
 	msg := NewChatAgentMessage(ChatAgentMessageTypeText, ChatAgentMessageRoleAssistant, "test-content")
-	aiResponse, err := chatAgent.ProcessChatMessage(*msg)
-	assert.Nil(t, err)
+	aiResponse := chatAgent.ProcessChatMessage(*msg)
 	assert.NotNil(t, aiResponse)
 }
 
@@ -227,6 +225,8 @@ func TestChatAgent_SendChatMessageAndWriteResponseToChannel(t *testing.T) {
 	chatAgent.OpenAIChatClient.SetBaseURL(ts.URL)
 	msg := NewChatAgentMessage(ChatAgentMessageTypeText, ChatAgentMessageRoleUser, "test-content")
 	messageChannel := make(chan ChatAgentMessage)
+	// We don't have to check the error here because we know that the message is valid.
+	// trunk-ignore(golangci-lint/errcheck)
 	go chatAgent.SendChatMessageAndWriteResponseToChannel(*msg, messageChannel)
 	aiResponse := <-messageChannel
 	assert.NotNil(t, aiResponse)
