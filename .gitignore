@@ -7,7 +7,7 @@
 
 # Go Debugging
 __debug_bin
-debug.log
+*.log
 
 # Test binary, built with `go test -c`
 *.test
@@ -17,6 +17,9 @@ debug.log
 
 # Dependency directories (remove the comment below to include it)
 # vendor/
+
+# Generated files
+generations/
 
 # Environment
 .env
