@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/CSXL/solus/tui"
+	"github.com/google/logger"
 	"github.com/spf13/cobra"
 )
 
@@ -12,6 +13,14 @@ var rootCmd = &cobra.Command{
 	Use:   "solus",
 	Short: "An AI-assisted project generator.",
 	Long:  `Solus is an AI-assisted project generator by CSX Labs.`,
+	PersistentPreRun: func(cmd *cobra.Command, args []string) {
+		logFile, err := os.Create("debug.log")
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		logger.Init("cobra", true, false, logFile)
+	},
 	Run: func(cmd *cobra.Command, args []string) {
 		_, err := tui.Run()
 		if err != nil {
