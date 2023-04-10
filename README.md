@@ -39,7 +39,7 @@ Interested in contributing or testing this project? Check out our [contributing 
 All of our submitted external proposals are in the [proposals](proposals/) folder.
 
 **Proposal Updates:** We just submitted a [proposal](assets/proposals/google_cloud.pdf) to [Google Cloud's Research Credits program](https://edu.google.com/intl/ALL_us/programs/credits/research/)
-for cloud credits, or money we can use towards Google Cloud services. We also reached out to OpenAI (no full proposal, just an email) and Microsoft to see if they could grant us cloud credits. We are working with Microsoft Partners in our region to explore this further. We'll keep you updated on our progress.
+for cloud credits, or money we can use towards Google Cloud services. We also reached out to OpenAI (no full proposal, just an email) and Microsoft to see if they could grant us cloud credits. We reached out to many independent funding sources, if we end up solidifying a deal we'll let you know.
 
 ## Overview
 
