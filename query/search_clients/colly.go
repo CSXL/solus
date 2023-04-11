@@ -57,6 +57,45 @@ func NewScraper() *Scraper {
 	}
 }
 
+// NewScraperWithCache creates a new Scraper with a cache directory
+func NewScraperWithCache(cacheDirectory string) *Scraper {
+	return &Scraper{
+		c: colly.NewCollector(colly.CacheDir(cacheDirectory)),
+	}
+}
+
+func (s *Scraper) Scrape(entryURL string, maxDepth int) ([]Website, error) {
+	websites := s.recursiveScrape(entryURL, []Website{}, maxDepth)
+	return websites, nil
+}
+
+func (s *Scraper) recursiveScrape(url string, websites []Website, maxDepth int) []Website {
+	if maxDepth <= 0 {
+		return websites
+	}
+	website, _ := s.ScrapePage(url)
+	if website == nil {
+		return websites
+	}
+	websites = append(websites, *website)
+	for _, link := range website.Links {
+		websites = s.recursiveScrape(link, websites, maxDepth-1)
+	}
+	return websites
+}
+
+func (s *Scraper) ScrapePages(urls []string) ([]Website, error) {
+	var err error
+	var websites []Website
+	for _, url := range urls {
+		website, err := s.ScrapePage(url)
+		if err == nil {
+			websites = append(websites, *website)
+		}
+	}
+	return websites, err
+}
+
 func (s *Scraper) ScrapePage(url string) (*Website, error) {
 	var err error
 	var w Website

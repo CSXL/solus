@@ -72,3 +72,15 @@ func TestScraper_ScrapePage(t *testing.T) {
 	assert.Equal(t, 1, len(page.Links))
 	assert.Equal(t, "https://github.com/CSXL", page.Links[0])
 }
+
+func TestScraper_Scrape(t *testing.T) {
+	t.Skip("This test relies on external websites, and should be run manually.")
+	s := NewScraper()
+	websites, err := s.Scrape("https://csxlabs.org", 3)
+	assert.Nil(t, err)
+	var websiteURLs []string
+	for _, website := range websites {
+		websiteURLs = append(websiteURLs, website.GetURL())
+	}
+	fmt.Println(websiteURLs)
+}
