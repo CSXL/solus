@@ -64,7 +64,7 @@ Solus will chat with the developer, gathering requirements for the project and u
 2. Solus will integrate with search APIs, such as [Google Custom Search](https://developers.google.com/custom-search/v1/introduction), and other essential websites, such as [StackOverflow](https://stackoverflow.com/), to gather a corpus of information about a query. We’ll integrate with some common websites and databases to remove overhead from scraping. However, we will provide scraping functionality (of returned search results), so Solus can access external documentation, API specifications, and other requisite information.
 3. Solus will store this information into an embeddings database (such as [Chroma](https://www.trychroma.com/)) and search the embeddings database for the query.
 4. Solus will take the returned data from the embeddings database and scan over it with a language model to generate a detailed answer with context.
-4. Solus will serialize the generated answer into a JSON response and send it to the requestee.
+5. Solus will serialize the generated answer into a JSON response and send it to the requestee.
 
 ### Project Planning
 
