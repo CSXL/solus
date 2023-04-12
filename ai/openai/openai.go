@@ -43,3 +43,26 @@ func (o *OpenAI) GetCompletion(prompt string, model string) (string, error) {
 	}
 	return resp.Choices[0].Text, nil
 }
+
+func (o *OpenAI) GetEmbeddings(texts []string) ([][]float32, error) {
+	resp, err := o.client.CreateEmbeddings(
+		o.ctx,
+		openai.EmbeddingRequest{
+			Input: texts,
+			Model: openai.AdaEmbeddingV2,
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+	vectors := embeddingsToVectors(resp.Data)
+	return vectors, nil
+}
+
+func embeddingsToVectors(embeddings []openai.Embedding) [][]float32 {
+	vector := make([][]float32, 0)
+	for _, embedding := range embeddings {
+		vector = append(vector, embedding.Embedding)
+	}
+	return vector
+}
