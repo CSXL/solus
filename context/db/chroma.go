@@ -55,7 +55,15 @@ func (c *ChromaClient) AddDocuments(collection string, documents []*Document) er
 	for i, document := range documents {
 		IDs[i] = document.ID
 		Metadatas[i] = document.Metadata
-		Embeddings[i] = document.Embedding
+		if document.Embedding == nil {
+			generatedEmbeddings, err := c.GetEmbeddings([]string{document.Content})
+			if err != nil {
+				return err
+			}
+			Embeddings[i] = generatedEmbeddings[0]
+		} else {
+			Embeddings[i] = document.Embedding
+		}
 		Contents[i] = document.Content
 	}
 	chromaDocuments := chromadb.AddEmbedding_Documents{}
@@ -89,5 +97,14 @@ func NewDocument(id string, metadata []interface{}, content string) *Document {
 		ID:       id,
 		Metadata: metadata,
 		Content:  content,
+	}
+}
+
+func NewDocumentWithEmbedding(id string, metadata []interface{}, content string, embedding []interface{}) *Document {
+	return &Document{
+		ID:        id,
+		Metadata:  metadata,
+		Content:   content,
+		Embedding: embedding,
 	}
 }
