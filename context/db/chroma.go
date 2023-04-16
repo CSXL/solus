@@ -67,12 +67,21 @@ func (c *ChromaClient) AddDocuments(collection string, documents []*Document) er
 		Contents[i] = document.Content
 	}
 	chromaDocuments := chromadb.AddEmbedding_Documents{}
-	chromaDocuments.FromAddEmbeddingDocuments1(chromadb.AddEmbeddingDocuments1(Contents))
+	err := chromaDocuments.FromAddEmbeddingDocuments1(chromadb.AddEmbeddingDocuments1(Contents))
+	if err != nil {
+		return err
+	}
 	chromaEmbeddings := Embeddings
 	chromaIds := chromadb.AddEmbedding_Ids{}
-	chromaIds.FromAddEmbeddingIds1(IDs)
+	err = chromaIds.FromAddEmbeddingIds1(IDs)
+	if err != nil {
+		return err
+	}
 	chromaMetadatas := chromadb.AddEmbedding_Metadatas{}
-	chromaMetadatas.FromAddEmbeddingMetadatas0(Metadatas)
+	err = chromaMetadatas.FromAddEmbeddingMetadatas0(Metadatas)
+	if err != nil {
+		return err
+	}
 	IncrementIndex := true
 	addRequest := chromadb.AddEmbedding{
 		Documents:      &chromaDocuments,
@@ -81,7 +90,7 @@ func (c *ChromaClient) AddDocuments(collection string, documents []*Document) er
 		IncrementIndex: &IncrementIndex,
 		Metadatas:      &chromaMetadatas,
 	}
-	_, err := c.db.Add(*c.GetContext(), collection, addRequest)
+	_, err = c.db.Add(*c.GetContext(), collection, addRequest)
 	return err
 }
 
