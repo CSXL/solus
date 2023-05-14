@@ -34,7 +34,7 @@ To automate the process of creating a project from requirements.
 
 For a more in-depth breakdown of the requirements and components, see our [specification](SPECIFICATION.md).
 
-Interested in contributing or testing this project? Check out our [contributing guide](CONTRIBUTING.md).
+Interested in contributing to or testing this project? Check out our [contributing guide](CONTRIBUTING.md).
 
 All of our submitted external proposals are in the [proposals](proposals/) folder.
 
@@ -62,8 +62,8 @@ Solus will chat with the developer, gathering requirements for the project and u
 
 1. A language model generates a JSON query and sends it to the Query API.
 2. Solus will integrate with search APIs, such as [Google Custom Search](https://developers.google.com/custom-search/v1/introduction), and other essential websites, such as [StackOverflow](https://stackoverflow.com/), to gather a corpus of information about a query. We’ll integrate with some common websites and databases to remove overhead from scraping. However, we will provide scraping functionality (of returned search results), so Solus can access external documentation, API specifications, and other requisite information.
-3. Solus will store this information into an embeddings database (such as [Chroma](https://www.trychroma.com/)) and search the embeddings database for the query.
-4. Solus will take the returned data from the embeddings database and scan over it with a language model to generate a detailed answer with context.
+3. Solus will store this information in an embeddings database (such as [Chroma](https://www.trychroma.com/)) and search the embeddings database for the query.
+4. Solus will take the returned data from the embedding database and scan over it with a language model to generate a detailed answer with context.
 5. Solus will serialize the generated answer into a JSON response and send it to the requestee.
 
 ### Project Planning
@@ -85,7 +85,7 @@ Solus will chat with the developer, gathering requirements for the project and u
 
 ## Current Status
 
-We are still building the MVP. We finished the interface (shown below), added chat functionality, and integrated with different outside data sources. The querying functionality is currently limited to Google search results, though this will change as we iterate on the Query API.
+We are still building the MVP. We finished the interface (shown below), added chat functionality, and integrated it with different outside data sources. The querying functionality is currently limited to Google search results, though this will change as we iterate on the Query API.
 
 ![terminal view](assets/readme_images/solus_terminal_view_top.png)
 ![terminal view with search](assets/readme_images/solus_terminal_view_search.png)
@@ -100,4 +100,4 @@ The idea is that we will try to slice through the different parts of the project
 to provide a simple set of presentable features that can we can continue to
 build upon.
 
-Please check our our GitHub [Project Page](https://github.com/orgs/CSXL/projects/2) for the task list and roadmap.
+Please check our GitHub [Project Page](https://github.com/orgs/CSXL/projects/2) for the task list and roadmap.

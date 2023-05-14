@@ -1,6 +1,6 @@
 version: 0.1
 cli:
-  version: 1.7.0
+  version: 1.9.1
 plugins:
   sources:
     - id: trunk
@@ -8,15 +8,17 @@ plugins:
       uri: https://github.com/trunk-io/plugins
 lint:
   enabled:
+    - shellcheck@0.9.0
+    - shfmt@3.5.0
     - actionlint@1.6.24
     - git-diff-check
-    - gitleaks@8.16.2
+    - gitleaks@8.16.3
     - gofmt@1.19.3
     - golangci-lint@1.52.2
-    - markdownlint@0.33.0
+    - markdownlint@0.34.0
     - oxipng@8.0.0
-    - prettier@2.8.7
-    - yamllint@1.30.0
+    - prettier@2.8.8
+    - yamllint@1.31.0
 runtimes:
   enabled:
     - go@1.19.5

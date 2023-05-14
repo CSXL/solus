@@ -36,3 +36,28 @@ func TestGetCompletion(t *testing.T) {
 		t.Errorf("GetCompletion() returned wrong completion: %v", completion)
 	}
 }
+
+func TestGetEmbeddings(t *testing.T) {
+	// Fake the response from the OpenAI API
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		// Example response pulled from https://platform.openai.com/docs/guides/embeddings/how-to-get-embeddings
+		// Requested on 4/11/2023
+		fakeResponse := `{"data":[{"embedding":[-0.006929283495992422,-0.005336422007530928,-0.00004547132266452536,-0.024047505110502243],"index":0,"object":"embedding"}],"model":"text-embedding-ada-002","object":"list","usage":{"prompt_tokens":5,"total_tokens":5}}`
+		_, err := w.Write([]byte(fakeResponse))
+		if err != nil {
+			return
+		}
+	}))
+	client := NewOpenAIWithBaseURL("test", ts.URL)
+	embeddings, err := client.GetEmbeddings([]string{"Hello World"})
+	if err != nil {
+		t.Errorf("GetEmbeddings() returned error: %v", err)
+	}
+	if len(embeddings) != 1 {
+		t.Errorf("GetEmbeddings() returned wrong number of embeddings: %v", len(embeddings))
+	}
+	if len(embeddings[0]) != 4 {
+		t.Errorf("GetEmbeddings() returned wrong number of dimensions: %v", len(embeddings[0]))
+	}
+}
