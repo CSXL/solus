@@ -2,11 +2,14 @@ package db
 
 import (
 	"context"
+	"encoding/json"
 
 	chromadb "github.com/CSXL/go-chroma"
 	"github.com/CSXL/solus/ai"
 	"github.com/CSXL/solus/ai/openai"
 )
+
+type Metadatas map[string]interface{}
 
 // ChromaClient is a client for interacting with the Chroma database
 type ChromaClient struct {
@@ -78,14 +81,80 @@ func (c *ChromaClient) AddDocuments(collection string, documents []*Document) er
 	return err
 }
 
+// RemoveDocumentsByMetadata removes documents from the database by metadata
+func (c *ChromaClient) RemoveDocumentsByMetadata(collection string, metadata Metadatas) error {
+	DeleteEmbeddingRequest := chromadb.DeleteEmbedding{
+		Where: metadata,
+	}
+	_, err := c.db.Delete(collection, &DeleteEmbeddingRequest)
+	return err
+}
+
+// RemoveDocumentsByIDs removes documents from the database by IDs
+func (c *ChromaClient) RemoveDocumentsByIDs(collection string, ids []string) error {
+	idsInterface := make([]interface{}, len(ids))
+	for i, id := range ids {
+		idsInterface[i] = id
+	}
+	DeleteEmbeddingRequest := chromadb.DeleteEmbedding{
+		Ids: idsInterface,
+	}
+	_, err := c.db.Delete(collection, &DeleteEmbeddingRequest)
+	return err
+}
+
+type searchResponse struct {
+	Ids       [][]string    `json:"ids"`
+	Documents [][]string    `json:"documents"`
+	Distances [][]float32   `json:"distances"`
+	Metadatas [][]Metadatas `json:"metadatas"`
+}
+
+// Search searches the database based on a query
+func (c *ChromaClient) Search(collection string, query string, limit int) ([]*Document, error) {
+	queryEmbeddings, err := c.GetEmbeddings(query)
+	if err != nil {
+		return nil, err
+	}
+	queryInterface := make([]interface{}, len(queryEmbeddings))
+	for i, v := range queryEmbeddings {
+		queryInterface[i] = v
+	}
+	QueryEmbeddingRequest := chromadb.QueryEmbedding{
+		QueryEmbeddings: queryInterface,
+		NResults:        limit,
+		Include:         []string{"metadatas", "documents", "distances", "embeddings"},
+	}
+	response, err := c.db.GetNearestNeighbors(collection, &QueryEmbeddingRequest)
+	if err != nil {
+		return nil, err
+	}
+	defer response.Body.Close()
+	var searchResponse searchResponse
+	err = json.NewDecoder(response.Body).Decode(&searchResponse)
+	if err != nil {
+		return nil, err
+	}
+	documents := make([]*Document, len(searchResponse.Ids))
+	for i := range searchResponse.Ids {
+		documents[i] = &Document{
+			ID:        searchResponse.Ids[i][0],
+			Metadata:  searchResponse.Metadatas[i][0],
+			Content:   searchResponse.Documents[i][0],
+			Embedding: nil,
+		}
+	}
+	return documents, nil
+}
+
 type Document struct {
 	ID        string
-	Metadata  map[string]interface{}
+	Metadata  Metadatas
 	Embedding []interface{}
 	Content   string
 }
 
-func NewDocument(id string, metadata map[string]interface{}, content string) *Document {
+func NewDocument(id string, metadata Metadatas, content string) *Document {
 	return &Document{
 		ID:       id,
 		Metadata: metadata,
@@ -93,7 +162,7 @@ func NewDocument(id string, metadata map[string]interface{}, content string) *Do
 	}
 }
 
-func NewDocumentWithEmbedding(id string, metadata map[string]interface{}, content string, embedding []float32) *Document {
+func NewDocumentWithEmbedding(id string, metadata Metadatas, content string, embedding []float32) *Document {
 	embeddingInterface := make([]interface{}, len(embedding))
 	for i, v := range embedding {
 		embeddingInterface[i] = v

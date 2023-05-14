@@ -21,7 +21,7 @@ services:
       - net
 
   clickhouse:
-    image: clickhouse/clickhouse-server:22.9-alpine
+    image: clickhouse/clickhouse-server:23.4-alpine
     environment:
       - ALLOW_EMPTY_PASSWORD=yes
       - CLICKHOUSE_TCP_PORT=9000
