@@ -8,7 +8,7 @@
 
 set -euo pipefail
 
-readonly TRUNK_LAUNCHER_VERSION="1.2.3"  # warning: this line is auto-updated
+readonly TRUNK_LAUNCHER_VERSION="1.2.4"  # warning: this line is auto-updated
 
 readonly SUCCESS_MARK="\033[0;32m✔\033[0m"
 readonly FAIL_MARK="\033[0;31m✘\033[0m"
@@ -341,7 +341,7 @@ download_cli() {
   if [[ ! -e ${OLD_TOOL_DIR} ]]; then
     ln -sf "${TOOL_PART}" "${OLD_TOOL_DIR}"
   fi
-  mv -n "${TMP_INSTALL_DIR}/trunk" "${TOOL_DIR}/"
+  mv -n "${TMP_INSTALL_DIR}/trunk" "${TOOL_DIR}/" || true
   rm -rf "${TMP_INSTALL_DIR}"
 }
 
@@ -386,7 +386,7 @@ fi
 ###############################################################################
 
 if [[ -n ${LATEST_FILE:-} ]]; then
-  mv -n "${LATEST_FILE}" "${TOOL_DIR}/version"
+  mv -n "${LATEST_FILE}" "${TOOL_DIR}/version" || true
 fi
 
 # NOTE: exec will overwrite the process image, so trap will not catch the exit signal.
