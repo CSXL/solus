@@ -33,6 +33,11 @@ func (c *ChromaClient) GetChromaDB() *chromadb.ChromaClient {
 	return c.db
 }
 
+// GhangeOpenAIBaseURL changes the base URL for the OpenAI client
+func (c *ChromaClient) ChangeOpenAIBaseURL(baseURL string) {
+	c.openAIClient = openai.NewOpenAIWithBaseURL(c.aiConfig.OpenAIAPIKey, baseURL)
+}
+
 // GetContext returns the context
 func (c *ChromaClient) GetContext() *context.Context {
 	return c.context

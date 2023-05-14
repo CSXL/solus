@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	"github.com/CSXL/solus/ai"
-	"github.com/CSXL/solus/ai/openai"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -68,8 +67,8 @@ func TestGetEmbeddings(t *testing.T) {
 	}))
 	ctx := context.Background()
 	aiConfig := ai.NewAIConfig("testKey")
-	client, err := NewChromaClient(&ctx, ts.URL, *aiConfig)
-	client.openAIClient = openai.NewOpenAIWithBaseURL("test", ts.URL)
+	client, err := NewChromaClient(&ctx, "https://example.com", *aiConfig)
+	client.ChangeOpenAIBaseURL(ts.URL)
 	assert.Nil(t, err)
 	assert.NotNil(t, client)
 	embeddings, err := client.GetEmbeddings("Hello World")
