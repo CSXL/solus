@@ -3,7 +3,7 @@ module github.com/CSXL/solus
 go 1.19
 
 require (
-	github.com/CSXL/go-chroma v1.0.1
+	github.com/CSXL/go-chroma v1.0.4
 	github.com/PuerkitoBio/goquery v1.8.1
 	github.com/charmbracelet/bubbles v0.15.0
 	github.com/charmbracelet/bubbletea v0.23.2

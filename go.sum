@@ -46,6 +46,8 @@ github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03
 github.com/BurntSushi/xgb v0.0.0-20160522181843-27f122750802/go.mod h1:IVnqGOEym/WlBOVXweHU+Q+/VP0lqqI8lqeDx9IjBqo=
 github.com/CSXL/go-chroma v1.0.1 h1:XefAy3y8nab63sVx294LDJGUr834J2WUE3BFe5eXmVY=
 github.com/CSXL/go-chroma v1.0.1/go.mod h1:sNw/JZiZUFCggb7oK1nLvCVzAb4msmgVDC//+KE4KEs=
+github.com/CSXL/go-chroma v1.0.4 h1:lkXlmh55YMSY83ROXWl6gh3OZElwcBsTn1XK4JmkY90=
+github.com/CSXL/go-chroma v1.0.4/go.mod h1:4KTyT+LWd7ed9osfR1PFLc+5Peqe//oW8HtOykTa3hw=
 github.com/PuerkitoBio/goquery v1.5.1/go.mod h1:GsLWisAFVj4WgDibEWF4pvYnkVQBpKBKeU+7zCJoLcc=
 github.com/PuerkitoBio/goquery v1.8.1 h1:uQxhNlArOIdbrH1tr0UXwdVFgDcZDrZVdcpygAcwmWM=
 github.com/PuerkitoBio/goquery v1.8.1/go.mod h1:Q8ICL1kNUJ2sXGoAhPGUdYDJvgQgHzJsnnd3H7Ho5jQ=
