@@ -26,6 +26,6 @@ func TestRequirementsGenerator_Generate(t *testing.T) {
 	ts := openai.StartHTTPTestServer(openai.SampleChatYAMLCompletion)
 	defer ts.Close()
 	testGenerator.Conversation.GetAgent().OpenAIChatClient.SetBaseURL(ts.URL)
-	testGenerator.Generate()
+	_, _ = testGenerator.Generate()
 	assert.NotNil(t, testGenerator.GeneratedRequirements)
 }

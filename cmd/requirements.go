@@ -12,7 +12,7 @@ var OutputFile string
 
 func init() {
 	requirementsCmd.PersistentFlags().StringVarP(&PathToConversation, "conversation-file", "f", "", "The path to the conversation file.")
-	requirementsCmd.MarkFlagRequired("conversation-file")
+	_ = requirementsCmd.MarkFlagRequired("conversation-file")
 	requirementsCmd.PersistentFlags().StringVarP(&OutputFile, "output-file", "o", "", "Write the generated requirements to a file.")
 	rootCmd.AddCommand(requirementsCmd)
 }
@@ -34,7 +34,11 @@ var requirementsCmd = &cobra.Command{
 			return
 		}
 		requirementsGenerator := requirements.NewRequirementsGenerator(inputConversation, requirementsConfig)
-		requirementsGenerator.Generate()
+		_, err = requirementsGenerator.Generate()
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
 		fmt.Println("Generated requirements successfully!")
 		if OutputFile == "" {
 			fmt.Println("Generated requirements: ", requirementsGenerator.GeneratedRequirements)
