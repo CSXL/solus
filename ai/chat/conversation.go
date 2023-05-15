@@ -3,7 +3,7 @@ package chat
 import (
 	"github.com/CSXL/solus/ai"
 	"github.com/CSXL/solus/ai/agent"
-	"github.com/google/logger"
+	"go.uber.org/zap"
 )
 
 type Conversation struct {
@@ -50,7 +50,7 @@ func (c *Conversation) startIfNotStarted() {
 }
 
 func (c *Conversation) LoadFromFile(filename string) error {
-	logger.Infof("Loading conversation from file %s", filename)
+	zap.S().Infof("Loading conversation from file %s", filename)
 	c.ResetMessages()
 	err := c.chatAgent.OpenAIChatClient.LoadMessages(filename)
 	if err != nil {
@@ -63,7 +63,7 @@ func (c *Conversation) LoadFromFile(filename string) error {
 }
 
 func (c *Conversation) SaveToFile(filename string) error {
-	logger.Infof("Saving conversation to file %s", filename)
+	zap.S().Infof("Saving conversation to file %s", filename)
 	return c.chatAgent.OpenAIChatClient.SaveMessages(filename)
 }
 

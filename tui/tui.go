@@ -18,8 +18,8 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/glamour"
 	"github.com/charmbracelet/lipgloss"
-	"github.com/google/logger"
 	"github.com/joho/godotenv"
+	"go.uber.org/zap"
 )
 
 type keyMap struct {
@@ -161,11 +161,11 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case key.Matches(msg, keybindings.Enter):
 			if m.input.Value() != "" {
 				messageToSend := m.input.Value()
-				m.Conversation.SendUserMessage(messageToSend)
+				_, _ = m.Conversation.SendUserMessage(messageToSend)
 				m.input.SetValue("")
 			}
 		case key.Matches(msg, keybindings.Save):
-			m.Conversation.SaveToFile(m.tui_config.SavedMessagesFile)
+			_ = m.Conversation.SaveToFile(m.tui_config.SavedMessagesFile)
 		case key.Matches(msg, keybindings.Down):
 			m.viewport.YOffset++
 			if m.viewport.ScrollPercent() >= 100 {
@@ -318,6 +318,12 @@ func loadSearchEngineConfig() (search_clients.SearchClientConfig, error) {
 	return search_engine_config, nil
 }
 
+func NewLogger() (*zap.Logger, error) {
+	cfg := zap.NewProductionConfig()
+	cfg.OutputPaths = []string{"debug.log"}
+	return cfg.Build()
+}
+
 func Run() (tea.Model, error) {
 	ctx := context.Background()
 	tui_config, err := loadTUIConfig()
@@ -329,10 +335,17 @@ func Run() (tea.Model, error) {
 		return nil, err
 	}
 	logFile, err := tea.LogToFile("debug.log", "debug")
-	logger.Init("TUI", tui_config.Debug, tui_config.Debug, logFile)
 	if err != nil {
 		return nil, err
 	}
+	logger, err := NewLogger()
+	if err != nil {
+		return nil, err
+	}
+	// trunk-ignore(golangci-lint/errcheck)
+	defer logger.Sync()
+	undo := zap.ReplaceGlobals(logger)
+	defer undo()
 	defer logFile.Close()
 	query_client := query.NewQuery(ctx, search_engine_config)
 	m := NewModel(tui_config, query_client)

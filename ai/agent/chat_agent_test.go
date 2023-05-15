@@ -1,17 +1,14 @@
 package agent
 
 import (
-	"io"
 	"testing"
 
 	"github.com/CSXL/solus/ai"
 	"github.com/CSXL/solus/ai/openai"
-	"github.com/google/logger"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestMain(m *testing.M) {
-	logger.Init("ChatAgentTest", true, false, io.Discard)
 	m.Run()
 }
 

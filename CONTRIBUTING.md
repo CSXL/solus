@@ -1,10 +1,10 @@
-# Welcome to Solus!
+# Welcome to Solus
 
 Thank you for joining us on this journey to automating the development process.
 
 ## Table of Contents
 
-- [Welcome to Solus!](#welcome-to-solus)
+- [Welcome to Solus](#welcome-to-solus)
   - [Table of Contents](#table-of-contents)
   - [Executive Summary](#executive-summary)
     - [Mission](#mission)
@@ -21,7 +21,7 @@ Thank you for joining us on this journey to automating the development process.
     - [Contributing Guidelines](#contributing-guidelines)
     - [Types of Contributions](#types-of-contributions)
     - [How to Contribute](#how-to-contribute)
-  - [Thank You!](#thank-you)
+  - [Thank You](#thank-you)
 
 ## Executive Summary
 
@@ -109,6 +109,6 @@ We welcome contributions of all kinds. Here are some examples of the types of co
 2. [Open an issue](https://docs.github.com/en/issues/tracking-your-work-with-issues/creating-an-issue) describing the changes you would like to make. If you are not sure if your changes are necessary, feel free to open an issue and ask us.
 3. If you want to make changes to the repository, [create a pull request](https://docs.github.com/en/github/collaborating-with-issues-and-pull-requests/creating-a-pull-request) and reference it in your issue. If you are not sure how to make the changes, feel free to open a pull request with your proposed changes and ask us for feedback.
 
-## Thank You!
+## Thank You
 
 Thank you for taking the time to read this document. We hope you enjoy using Solus and that it helps you in your work. If you have any questions, comments, or concerns, feel free to reach out to us at [opensource@csxlabs.org](mailto:opensource@csxlabs.org). If you have any business inquiries about Solus or CSX Labs, fill out our [contact form](https://csxlabs.org/#contact) or email us at [info@csxlabs.org](mailto:info@csxlabs.org).

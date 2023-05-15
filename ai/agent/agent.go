@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/google/logger"
 	"github.com/google/uuid"
+	"go.uber.org/zap"
 )
 
 func generateUUID() string {
@@ -151,7 +151,7 @@ func (a *Agent) AddTask(task IAgentTask) error {
 
 func (a *Agent) addSequentialTask(task IAgentTask) error {
 	if !a.taskExists(task) {
-		logger.Infof("Adding sequential task <ID: %s, Name: %s> to agent <ID: %s, Name: %s>", task.GetID(), task.GetName(), a.GetID(), a.GetName())
+		zap.S().Infof("Adding sequential task <ID: %s, Name: %s> to agent <ID: %s, Name: %s>", task.GetID(), task.GetName(), a.GetID(), a.GetName())
 		taskType := task.GetType()
 		_, sequentialTaskQueueExists := a.sequentialTaskQueues[taskType]
 		if !sequentialTaskQueueExists {
@@ -169,7 +169,7 @@ func (a *Agent) addSequentialTask(task IAgentTask) error {
 
 func (a *Agent) addStandardTask(task IAgentTask) error {
 	if !a.taskExists(task) {
-		logger.Infof("Adding standard task <ID: %s, Name: %s> to agent <ID: %s, Name: %s>", task.GetID(), task.GetName(), a.GetID(), a.GetName())
+		zap.S().Infof("Adding standard task <ID: %s, Name: %s> to agent <ID: %s, Name: %s>", task.GetID(), task.GetName(), a.GetID(), a.GetName())
 		a.taskQueue <- task
 		return nil
 	}
@@ -204,7 +204,7 @@ func (a *Agent) executeTaskInBackground(task IAgentTask) {
 	a.runningTasks[task.GetID()] = &task
 	a.incrementTaskRoutines()
 	go func() {
-		logger.Infof("Executing task <ID: %s, Name: %s> on agent <ID: %s, Name: %s>", task.GetID(), task.GetName(), a.GetID(), a.GetName())
+		zap.S().Infof("Executing task <ID: %s, Name: %s> on agent <ID: %s, Name: %s>", task.GetID(), task.GetName(), a.GetID(), a.GetName())
 		task.Execute(func() {
 			a.decrementTaskRoutines()
 			delete(a.runningTasks, task.GetID())
@@ -214,7 +214,7 @@ func (a *Agent) executeTaskInBackground(task IAgentTask) {
 				a.completedTasks[task.GetID()] = &task
 			}
 		})
-		logger.Infof("Finished executing task <ID: %s, Name: %s> on agent <ID: %s, Name: %s>", task.GetID(), task.GetName(), a.GetID(), a.GetName())
+		zap.S().Infof("Finished executing task <ID: %s, Name: %s> on agent <ID: %s, Name: %s>", task.GetID(), task.GetName(), a.GetID(), a.GetName())
 	}()
 }
 
@@ -262,8 +262,8 @@ func (a *Agent) runTaskLoop() {
 			if !ok {
 				return
 			}
-			logger.Infof("Running standard task <ID: %s, Name: %s> on agent <ID: %s, Name: %s>", task.GetID(), task.GetName(), a.GetID(), a.GetName())
-			a.runTaskInBackground(task)
+			zap.S().Infof("Running standard task <ID: %s, Name: %s> on agent <ID: %s, Name: %s>", task.GetID(), task.GetName(), a.GetID(), a.GetName())
+			_ = a.runTaskInBackground(task)
 		case <-a.killChannel:
 			close(a.taskQueue)
 			return
@@ -278,9 +278,9 @@ func (a *Agent) runSequentialTaskLoop(taskType AgentTaskType) {
 			if !ok {
 				return
 			}
-			logger.Infof("Running sequential task <ID: %s, Name: %s> on agent <ID: %s, Name: %s>", task.GetID(), task.GetName(), a.GetID(), a.GetName())
-			a.runTask(task) // Runs the task blocking the task loop
-			logger.Infof("Finished sequential task <ID: %s, Name: %s> on agent <ID: %s, Name: %s>", task.GetID(), task.GetName(), a.GetID(), a.GetName())
+			zap.S().Infof("Running sequential task <ID: %s, Name: %s> on agent <ID: %s, Name: %s>", task.GetID(), task.GetName(), a.GetID(), a.GetName())
+			_ = a.runTask(task) // Runs the task blocking the task loop
+			zap.S().Infof("Finished sequential task <ID: %s, Name: %s> on agent <ID: %s, Name: %s>", task.GetID(), task.GetName(), a.GetID(), a.GetName())
 		case <-a.killChannel:
 			close(a.sequentialTaskQueues[taskType])
 			return
@@ -315,9 +315,9 @@ func (a *Agent) runSequentialTaskEventLoop() {
 }
 
 func (a *Agent) Start() {
-	logger.Infof("Starting agent <ID: %s, Name: %s>", a.GetID(), a.GetName())
+	zap.S().Infof("Starting agent <ID: %s, Name: %s>", a.GetID(), a.GetName())
 	if a.isRunning {
-		logger.Infof("Agent <ID: %s, Name: %s> is already running. Start canceled.", a.GetID(), a.GetName())
+		zap.S().Infof("Agent <ID: %s, Name: %s> is already running. Start canceled.", a.GetID(), a.GetName())
 		return
 	}
 	a.isRunning = true
@@ -325,13 +325,13 @@ func (a *Agent) Start() {
 	go a.runTaskLoop()
 	a.incrementTaskLoopRoutines()
 	go a.runSequentialTaskEventLoop()
-	logger.Infof("Started agent <ID: %s, Name: %s>", a.GetID(), a.GetName())
+	zap.S().Infof("Started agent <ID: %s, Name: %s>", a.GetID(), a.GetName())
 }
 
 func (a *Agent) Stop() {
-	logger.Infof("Stopping agent <ID: %s, Name: %s>", a.GetID(), a.GetName())
+	zap.S().Infof("Stopping agent <ID: %s, Name: %s>", a.GetID(), a.GetName())
 	if !a.isRunning {
-		logger.Infof("Agent <ID: %s, Name: %s> is not running. Stop canceled.", a.GetID(), a.GetName())
+		zap.S().Infof("Agent <ID: %s, Name: %s> is not running. Stop canceled.", a.GetID(), a.GetName())
 		return
 	}
 	close(a.taskQueue)
@@ -343,13 +343,13 @@ func (a *Agent) Stop() {
 	close(a.sequentialTaskEvents)
 	a.taskLoopRoutines.Wait()
 	a.isRunning = false
-	logger.Infof("Stopped agent <ID: %s, Name: %s>", a.GetID(), a.GetName())
+	zap.S().Infof("Stopped agent <ID: %s, Name: %s>", a.GetID(), a.GetName())
 }
 
 func (a *Agent) Kill() {
-	logger.Infof("Killing agent <ID: %s, Name: %s>", a.GetID(), a.GetName())
+	zap.S().Infof("Killing agent <ID: %s, Name: %s>", a.GetID(), a.GetName())
 	if !a.isRunning {
-		logger.Infof("Agent <ID: %s, Name: %s> is not running. Kill canceled.", a.GetID(), a.GetName())
+		zap.S().Infof("Agent <ID: %s, Name: %s> is not running. Kill canceled.", a.GetID(), a.GetName())
 		return
 	}
 	a.killChannel <- true
@@ -358,7 +358,7 @@ func (a *Agent) Kill() {
 		a.killedTasks[task] = a.runningTasks[task]
 	}
 	a.isRunning = false
-	logger.Infof("Killed agent <ID: %s, Name: %s>", a.GetID(), a.GetName())
+	zap.S().Infof("Killed agent <ID: %s, Name: %s>", a.GetID(), a.GetName())
 }
 
 type AgentTaskType struct {

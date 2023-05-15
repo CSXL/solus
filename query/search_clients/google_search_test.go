@@ -47,7 +47,7 @@ func TestGoogleSearchClient_Search(t *testing.T) {
 				},
 			},
 		}
-		json.NewEncoder(w).Encode(response)
+		_ = json.NewEncoder(w).Encode(response)
 	}))
 
 	// Set the client's HTTP client to the test server

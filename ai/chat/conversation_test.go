@@ -75,7 +75,7 @@ func TestConversation_SendUserMessage(t *testing.T) {
 	ts := openai.StartHTTPTestServer(openai.SampleChatCompletion)
 	defer ts.Close()
 	conversation.chatAgent.OpenAIChatClient.SetBaseURL(ts.URL)
-	conversation.SendUserMessage(testContent)
+	_, _ = conversation.SendUserMessage(testContent)
 	assert.Equal(t, 2, conversation.GetMessageCount())
 	assert.NotNil(t, conversation.GetLastMessage())
 }

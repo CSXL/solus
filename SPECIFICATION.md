@@ -1,8 +1,8 @@
-## Specification
+# Specification
 
 **Language:** Go
 
-### Query API
+## Query API
 
 A library that requests outside information (from Google, StackOverflow, etc.)
 and returns the information in a standardized text format. This API should also
@@ -56,20 +56,20 @@ Response Format:
 }
 ```
 
-### Context Engine
+## Context Engine
 
 Language models are limited by their context. The Context Engine will store task-specific dynamic context for different tasks.
 
 Example: If the Debugging API is trying to fix a bug and uses the Query API to get documentation, the Context Engine will store the context of the bug and the documentation that was requested, as well as excerpts from relevant files. The language model will then use this context to fix the bug.
 
-### Interface
+## Interface
 
 A CLI tool that collects requirements from the developer in a conversational
 manner and then generates a project from those requirements. The tool will call
 the Query API to help the developer choose the correct technologies and APIs,
 and call the rest of the APIs to generate the project.
 
-### Requirements API
+## Requirements API
 
 A library that processes a conversation with the developer about requirements and
 generates a YAML file that can be used to generate a project.
@@ -89,7 +89,7 @@ requirements:
   - ...
 ```
 
-### Outline API
+## Outline API
 
 A library that takes in a YAML file of requirements and generates a YAML project
 outline. The outline will be a list of files and directories that will be
@@ -121,7 +121,7 @@ objects:
   - ...
 ```
 
-### Dependency API
+## Dependency API
 
 A library that takes in a YAML file of requirements and uses the Query API to
 find the dependencies for the project as well as their documentation.
@@ -150,7 +150,7 @@ rest-apis:
     - ...
 ```
 
-### Code API
+## Code API
 
 A library that takes in requirements that a file or directory will fulfill and
 generates the code needed to fulfill those requirements. The Code API will
@@ -169,7 +169,7 @@ Process:
 - Refactor code
 - Repeat
 
-### Debugging API
+## Debugging API
 
 AIs don't make bug-free code just like humans. The Debugging API will be used to
 run tests and linters on the generated code, fixing any bugs that are found with

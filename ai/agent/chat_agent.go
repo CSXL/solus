@@ -6,7 +6,7 @@ import (
 
 	"github.com/CSXL/solus/ai"
 	"github.com/CSXL/solus/ai/openai"
-	"github.com/google/logger"
+	"go.uber.org/zap"
 )
 
 type ChatAgentMessageRole string
@@ -275,7 +275,7 @@ func (c *ChatAgent) GetLastMessageRole() ChatAgentMessageRole {
 
 func (c *ChatAgent) sendMessageToAgent(msg ChatAgentMessage) (*ChatAgentTask, error) {
 	if !c.IsRunning() {
-		logger.Info("Note: Agent is not running, message will be queued but not sent.")
+		zap.S().Info("Note: Agent is not running, message will be queued but not sent.")
 	}
 	sendTask, err := NewChatAgentTask(c, ChatAgentTaskTypeSendMessage, msg)
 	if err != nil {
@@ -301,7 +301,7 @@ func (c *ChatAgent) sendMessage(msg ChatAgentMessage) (*ChatAgentMessage, error)
 		return nil, messageTask.GetResult().(error)
 	}
 	aiResponseMessage := messageTask.GetResult().(*ChatAgentMessage)
-	logger.Infof("Received chat message from ChatAgent <ID: %s, Name: %s>: %s", c.GetID(), c.GetName(), aiResponseMessage.Content)
+	zap.S().Infof("Received chat message from ChatAgent <ID: %s, Name: %s>: %s", c.GetID(), c.GetName(), aiResponseMessage.Content)
 	return aiResponseMessage, nil
 }
 
@@ -314,7 +314,7 @@ func (c *ChatAgent) sendMessage(msg ChatAgentMessage) (*ChatAgentMessage, error)
 //	  "content": string // Your message content (e.g. "Hello", "https://example.com", "What is the weather like in 2023?")
 //	}
 func (c *ChatAgent) SendChatMessage(msg ChatAgentMessage) (*ChatAgentMessage, error) {
-	logger.Infof("Sending chat message to ChatAgent <ID: %s, Name: %s>: %s", c.GetID(), c.GetName(), msg.Content)
+	zap.S().Infof("Sending chat message to ChatAgent <ID: %s, Name: %s>: %s", c.GetID(), c.GetName(), msg.Content)
 	// Ignoring error for tolerance of AI Messages.
 	// trunk-ignore(golangci-lint/errcheck)
 	msg.Marshal()
