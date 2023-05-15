@@ -224,8 +224,7 @@ func (c *ChatAgent) getMarshalledMessages() []ChatAgentMessage {
 	marshalledMessages := []ChatAgentMessage{}
 	for _, msg := range c.Messages {
 		// Ignoring error for tolerance of AI Messages.
-		// trunk-ignore(golangci-lint/errcheck)
-		msg.Marshal()
+		msg.Marshal() // trunk-ignore(golangci-lint/errcheck)
 		marshalledMessages = append(marshalledMessages, msg)
 	}
 	return marshalledMessages

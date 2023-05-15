@@ -223,8 +223,7 @@ func TestChatAgent_SendChatMessageAndWriteResponseToChannel(t *testing.T) {
 	msg := NewChatAgentMessage(ChatAgentMessageTypeText, ChatAgentMessageRoleUser, "test-content")
 	messageChannel := make(chan ChatAgentMessage)
 	// We don't have to check the error here because we know that the message is valid.
-	// trunk-ignore(golangci-lint/errcheck)
-	go chatAgent.SendChatMessageAndWriteResponseToChannel(*msg, messageChannel)
+	go chatAgent.SendChatMessageAndWriteResponseToChannel(*msg, messageChannel) // trunk-ignore(golangci-lint/errcheck)
 	aiResponse := <-messageChannel
 	assert.NotNil(t, aiResponse)
 	assert.Equal(t, 2, len(chatAgent.Messages))
