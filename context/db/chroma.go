@@ -36,6 +36,49 @@ func (c *ChromaClient) GetChromaDB() *chromadb.ChromaClient {
 	return c.db
 }
 
+// CreateCollection creates a new collection
+func (c *ChromaClient) CreateCollection(collection string) error {
+	createCollectionRequest := chromadb.NewCreateCollection(collection)
+	_, err := c.db.CreateCollection(createCollectionRequest)
+	return err
+}
+
+type collectionsResponse struct {
+	Name     string      `json:"name"`
+	Metadata interface{} `json:"metadata"`
+}
+
+// ListCollections lists the collections
+func (c *ChromaClient) ListCollections() ([]string, error) {
+	response, err := c.db.ListCollections()
+	if err != nil {
+		return nil, err
+	}
+	defer response.Body.Close()
+	var rawCollections []collectionsResponse
+	err = json.NewDecoder(response.Body).Decode(&rawCollections)
+	if err != nil {
+		return nil, err
+	}
+	collections := make([]string, len(rawCollections))
+	for i, collection := range rawCollections {
+		collections[i] = collection.Name
+	}
+	return collections, nil
+}
+
+// DeleteCollection deletes a collection
+func (c *ChromaClient) DeleteCollection(collection string) error {
+	_, err := c.db.DeleteCollection(collection)
+	return err
+}
+
+// Reset resets the database
+func (c *ChromaClient) Reset() error {
+	_, err := c.db.Reset()
+	return err
+}
+
 // GhangeOpenAIBaseURL changes the base URL for the OpenAI client
 func (c *ChromaClient) ChangeOpenAIBaseURL(baseURL string) {
 	c.openAIClient = openai.NewOpenAIWithBaseURL(c.aiConfig.OpenAIAPIKey, baseURL)
@@ -78,6 +121,41 @@ func (c *ChromaClient) AddDocuments(collection string, documents []*Document) er
 		Documents:      contents,
 	}
 	_, err := c.db.Add(collection, &AddEmbeddingRequest)
+	return err
+}
+
+// UpdateDocumentMetadatas updates the metadatas for the given documents
+func (c *ChromaClient) UpdateDocumentsMetadata(collection string, documents []*Document) error {
+	metadatas := make([]interface{}, len(documents))
+	ids := make([]interface{}, len(documents))
+	for i, document := range documents {
+		metadatas[i] = document.Metadata
+		ids[i] = document.ID
+	}
+	UpdateEmbeddingRequest := chromadb.UpdateEmbedding{
+		Ids:       ids,
+		Metadatas: metadatas,
+	}
+	_, err := c.db.Update(collection, &UpdateEmbeddingRequest)
+	return err
+}
+
+// UpdateDocumentsContent updates the content and embeddings for the given documents
+func (c *ChromaClient) UpdateDocumentsContent(collection string, documents []*Document) error {
+	embeddings := make([]interface{}, len(documents))
+	ids := make([]interface{}, len(documents))
+	contents := make([]interface{}, len(documents))
+	for i, document := range documents {
+		embeddings[i] = document.Embedding
+		ids[i] = document.ID
+		contents[i] = document.Content
+	}
+	UpdateEmbeddingRequest := chromadb.UpdateEmbedding{
+		Ids:        ids,
+		Embeddings: embeddings,
+		Documents:  contents,
+	}
+	_, err := c.db.Update(collection, &UpdateEmbeddingRequest)
 	return err
 }
 

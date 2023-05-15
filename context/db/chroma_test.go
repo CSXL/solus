@@ -36,6 +36,104 @@ func TestGetContext(t *testing.T) {
 	assert.NotNil(t, client.GetContext())
 }
 
+func TestCreateCollection(t *testing.T) {
+	ctx := context.Background()
+	aiConfig := ai.NewAIConfig("testKey")
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer ts.Close()
+	client, err := NewChromaClient(&ctx, ts.URL, *aiConfig)
+	assert.Nil(t, err)
+	assert.NotNil(t, client)
+	err = client.CreateCollection("test")
+	assert.Nil(t, err)
+}
+
+func TestListCollections(t *testing.T) {
+	ctx := context.Background()
+	aiConfig := ai.NewAIConfig("testKey")
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		// Example response pulled from internal test
+		// Requested on 5/14/2023
+		fakeResponse := `[{"name":"test","metadata":null},{"name":"test2","metadata":null}]`
+		_, err := w.Write([]byte(fakeResponse))
+		if err != nil {
+			return
+		}
+	}))
+	defer ts.Close()
+	client, err := NewChromaClient(&ctx, ts.URL, *aiConfig)
+	assert.Nil(t, err)
+	assert.NotNil(t, client)
+	collections, err := client.ListCollections()
+	assert.Nil(t, err)
+	assert.NotNil(t, collections)
+}
+
+func TestUpdateDocumentsMetadata(t *testing.T) {
+	ctx := context.Background()
+	aiConfig := ai.NewAIConfig("testKey")
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer ts.Close()
+	client, err := NewChromaClient(&ctx, ts.URL, *aiConfig)
+	assert.Nil(t, err)
+	assert.NotNil(t, client)
+	documents := []*Document{
+		NewDocumentWithEmbedding("docid", Metadatas{"mymetadatakey": "myvalue"}, "documentcontent", []float32{0.1, 0.2, 0.3}),
+	}
+	err = client.UpdateDocumentsMetadata("test", documents)
+	assert.Nil(t, err)
+}
+
+func TestUpdateDocumentsContent(t *testing.T) {
+	ctx := context.Background()
+	aiConfig := ai.NewAIConfig("testKey")
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer ts.Close()
+	client, err := NewChromaClient(&ctx, ts.URL, *aiConfig)
+	assert.Nil(t, err)
+	assert.NotNil(t, client)
+	documents := []*Document{
+		NewDocumentWithEmbedding("docid", Metadatas{"mymetadatakey": "myvalue"}, "documentcontent", []float32{0.1, 0.2, 0.3}),
+	}
+	err = client.UpdateDocumentsContent("test", documents)
+	assert.Nil(t, err)
+}
+
+func TestDeleteCollection(t *testing.T) {
+	ctx := context.Background()
+	aiConfig := ai.NewAIConfig("testKey")
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer ts.Close()
+	client, err := NewChromaClient(&ctx, ts.URL, *aiConfig)
+	assert.Nil(t, err)
+	assert.NotNil(t, client)
+	err = client.DeleteCollection("test")
+	assert.Nil(t, err)
+}
+
+func TestReset(t *testing.T) {
+	ctx := context.Background()
+	aiConfig := ai.NewAIConfig("testKey")
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer ts.Close()
+	client, err := NewChromaClient(&ctx, ts.URL, *aiConfig)
+	assert.Nil(t, err)
+	assert.NotNil(t, client)
+	err = client.Reset()
+	assert.Nil(t, err)
+}
+
 func TestAddDocuments(t *testing.T) {
 	ctx := context.Background()
 	aiConfig := ai.NewAIConfig("testKey")
