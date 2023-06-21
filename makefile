@@ -8,6 +8,8 @@ generate_requirements:
 	@echo "Generating requirements..."
 	@make build
 	@./solus.out requirements -f gen/messages.json -o gen/generated_requirements.yaml
+	@make clean
+	@echo "Done."
 
 build:
 	@echo "Building..."
