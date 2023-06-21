@@ -25,6 +25,7 @@ zip_result:
 
 end_to_end:
 	@echo "Running end to end..."
+	@make run
 	@make generate_requirements
 	@make generate_code
 	@make zip_result
