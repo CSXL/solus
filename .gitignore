@@ -18,8 +18,8 @@ __debug_bin
 # Dependency directories (remove the comment below to include it)
 # vendor/
 
-# Generated files
-generations/
+# Generated files from Solus
+gen/
 
 # Environment
 .env

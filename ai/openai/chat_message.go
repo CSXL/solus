@@ -121,7 +121,7 @@ func (c *ChatClient) AddMessage(role string, content string) {
 
 func (c *ChatClient) SendMessage(content string, role string) error {
 	c.AddMessage(role, content)
-	messages, err := c.CreateChatCompletion(c.messages, openai.GPT3Dot5Turbo)
+	messages, err := c.CreateChatCompletion(c.messages, openai.GPT4)
 	c.messages = messages
 	return err
 }

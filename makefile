@@ -4,6 +4,11 @@ run:
 	@go run main.go
 	@echo "Done."
 
+generate_requirements:
+	@echo "Generating requirements..."
+	@make build
+	@./solus.out requirements -f gen/messages.json -o gen/generated_requirements.yaml
+
 build:
 	@echo "Building..."
 	@go build -o solus.out
