@@ -28,7 +28,7 @@ func NewCodeConfig(generationFolder string, openAIAPIKey string) *CodeConfig {
 	}
 }
 
-func LoadCodeConfig() (*CodeConfig, error) {
+func LoadCodeConfig(generationFolder string) (*CodeConfig, error) {
 	err := godotenv.Load()
 	if err != nil {
 		return nil, err
@@ -38,9 +38,9 @@ func LoadCodeConfig() (*CodeConfig, error) {
 	if err != nil {
 		return nil, err
 	}
-	codePrompt := config_reader.Get("code_prompt").(string)
 	openAIAPIKey := os.Getenv("OPENAI_API_KEY")
-	code_config := NewCodeConfig(codePrompt, openAIAPIKey)
+	code_config := NewCodeConfig(generationFolder, openAIAPIKey)
+	code_config.CodePrompt = config_reader.GetString("code_prompt")
 	return code_config, nil
 }
 
@@ -112,5 +112,6 @@ func (c *CodeGenerator) Generate() error {
 	if err != nil {
 		return err
 	}
+	fmt.Printf("Response: %s\n", responseContent)
 	return c.updateProjectState(responseContent)
 }

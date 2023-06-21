@@ -14,7 +14,7 @@ generate_requirements:
 generate_code:
 	@echo "Generating code..."
 	@make build
-	@./solus.out code -g gen
+	@./solus.out code -g $(shell pwd)/gen
 	@make clean
 	@echo "Done."
 

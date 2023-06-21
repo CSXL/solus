@@ -21,7 +21,7 @@ var codeCmd = &cobra.Command{
 	Long:  `Generate the code for a project`,
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Println("Generating code...")
-		codeConfig, err := code.LoadCodeConfig()
+		codeConfig, err := code.LoadCodeConfig(GenerationFolder)
 		if err != nil {
 			fmt.Println(err)
 			return

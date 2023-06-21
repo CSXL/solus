@@ -6,7 +6,7 @@ code_prompt: |-
   requirements for a project.\n
   Output Rules:\n
   * Your response must contain the files in the following format:\n
-  //// FILE~/<folder>/<filename>.<extension> ////\n
+  //// FILE~<folder>/<filename>.<extension> ////\n
   file contents\n
   //// END FILE ////\n
   ... other files ...\n
