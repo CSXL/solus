@@ -21,10 +21,10 @@ func (c *CodeConfig) ToAIConfig() *ai.AIConfig {
 	return ai.NewAIConfig(c.OpenAIAPIKey)
 }
 
-func NewCodeConfig(codePrompt string, openAIAPIKey string) *CodeConfig {
+func NewCodeConfig(generationFolder string, openAIAPIKey string) *CodeConfig {
 	return &CodeConfig{
-		CodePrompt:   codePrompt,
-		OpenAIAPIKey: openAIAPIKey,
+		GenerationFolder: generationFolder,
+		OpenAIAPIKey:     openAIAPIKey,
 	}
 }
 
@@ -53,7 +53,7 @@ type CodeGenerator struct {
 // Creates a new CodeGenerator
 // The code generator will use the given input data to generate the
 // code for the project.
-func NewCodeGenerator(generationFolder string, requirements string, config *CodeConfig) *CodeGenerator {
+func NewCodeGenerator(generationFolder string, config *CodeConfig) *CodeGenerator {
 	conversationName := "code"
 	aiConfig := config.ToAIConfig()
 	conversation := chat.NewConversation(conversationName, aiConfig)
@@ -73,7 +73,7 @@ func (c *CodeGenerator) buildPrompt() string {
 	return prompt
 }
 
-func (c *CodeGenerator) LoadProjectState() error {
+func (c *CodeGenerator) loadProjectState() error {
 	projectState, err := syncfiles.Load(c.codeConfig.GenerationFolder)
 	if err != nil {
 		return err
@@ -82,12 +82,12 @@ func (c *CodeGenerator) LoadProjectState() error {
 	return nil
 }
 
-func (c *CodeGenerator) UpdateProjectState(update string) error {
+func (c *CodeGenerator) updateProjectState(update string) error {
 	err := syncfiles.Update(c.codeConfig.GenerationFolder, update)
 	if err != nil {
 		return err
 	}
-	return c.LoadProjectState()
+	return c.loadProjectState()
 }
 
 func (c *CodeGenerator) promptModel() (string, error) {
@@ -103,18 +103,14 @@ func (c *CodeGenerator) promptModel() (string, error) {
 }
 
 // Generates the code for the project based on the given directory state.
-func (c *CodeGenerator) Generate() (string, error) {
-	err := c.LoadProjectState()
+func (c *CodeGenerator) Generate() error {
+	err := c.loadProjectState()
 	if err != nil {
-		return "", err
+		return err
 	}
 	responseContent, err := c.promptModel()
 	if err != nil {
-		return "", err
+		return err
 	}
-	err = c.UpdateProjectState(responseContent)
-	if err != nil {
-		return "", err
-	}
-	return responseContent, nil
+	return c.updateProjectState(responseContent)
 }
