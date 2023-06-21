@@ -18,6 +18,18 @@ generate_code:
 	@make clean
 	@echo "Done."
 
+zip_result:
+	@echo "Zipping result..."
+	@zip -r gen.zip gen
+	@echo "Done."
+
+end_to_end:
+	@echo "Running end to end..."
+	@make generate_requirements
+	@make generate_code
+	@make zip_result
+	@echo "Done."
+
 build:
 	@echo "Building..."
 	@go build -o solus.out
