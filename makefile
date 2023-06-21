@@ -11,6 +11,13 @@ generate_requirements:
 	@make clean
 	@echo "Done."
 
+generate_code:
+	@echo "Generating code..."
+	@make build
+	@./solus.out code -g gen
+	@make clean
+	@echo "Done."
+
 build:
 	@echo "Building..."
 	@go build -o solus.out
