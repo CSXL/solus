@@ -10,9 +10,13 @@ import (
 
 var (
 	filePattern = regexp.MustCompile(`(?s)//// FILE~(?P<filepath>.*?) ////\n(?P<content>.*?)\n//// END FILE ////`)
+	ignoreList  = []string{
+		"messages.json",
+		".git",
+	}
 )
 
-func Sync(parentFolder, update string) error {
+func Update(parentFolder, update string) error {
 	if !filepath.IsAbs(parentFolder) {
 		return fmt.Errorf("parent folder path: %q is not absolute", parentFolder)
 	}
@@ -47,6 +51,13 @@ func Load(parentFolder string) (string, error) {
 
 		if !info.Mode().IsRegular() {
 			return nil
+		}
+
+		// Check ignore list
+		for _, ignore := range ignoreList {
+			if strings.Contains(path, ignore) {
+				return nil
+			}
 		}
 
 		content, err := os.ReadFile(path)

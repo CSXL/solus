@@ -19,8 +19,8 @@ Hello, World!
 //// END FILE ////
 `
 
-	if err := Sync(parentFolder, update); err != nil {
-		t.Fatalf("Sync failed: %v", err)
+	if err := Update(parentFolder, update); err != nil {
+		t.Fatalf("Update failed: %v", err)
 	}
 
 	content, err := os.ReadFile(filepath.Join(parentFolder, "test/test1.txt"))
