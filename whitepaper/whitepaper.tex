@@ -1,4 +1,4 @@
-\documentclass[a4paper,twocolumn,11pt,accepted=2017-05-09]{whitepaper}
+\documentclass[a4paper,twocolumn,11pt,accepted=2017-05-09]{quantumarticle}
 \pdfoutput=1
 \usepackage[utf8]{inputenc}
 \usepackage[english]{babel}
@@ -10,7 +10,7 @@
 \usepackage{lipsum}
 
 \usepackage{natbib}
-\bibliographystyle{chicago}
+\bibliographystyle{unsrt}
 
 \newtheorem{theorem}{Theorem}
 
@@ -27,7 +27,15 @@
 \begin{abstract}
   CSX Labs
 \end{abstract}
-\section{Figures}
-As shown in \cite{bubeck_sparks_2023}
+\section{Introduction}
+\subsection{Market Background}
+The seamless transfer of knowledge and data across nations powered the information age. Global access to electronic devices created high-growth platforms and services, springing millions of jobs in content creation, software development, and more. An estimated 26.9 million professional developers practiced worldwide as of 2022, growing 14.5\% from 2018\cite{Qubit2022How}. The inception of large language models gave rise to the generative AI space, with platforms growing at a record pace, such as OpenAI's ChatGPT, which rose to 100 million users in two months\cite{Carr2023ChatGPT}. One implication of generative AI is that it automates large portions of the jobs created in the information revolution in the tech, legal, financial, media, and support fields, to name a few\cite{Mok2023ChatGPT}. S\&P Global Market Intelligence predicts generative AI market revenue to hit \$36 billion by 2028, forecasting code generators to lead the expansion at a compound annual growth rate of 72.9\%\cite{Park2023Generative}. The ability of language models to generate code has sparked new products such as GitHub's Copilot\cite{Dohmke2022GitHub}, Replit's Ghostwriter\cite{Masad2022Ghostwriter}, and Amazon's Codewhisperer\cite{Engdahl2023Amazon}, which provide inline code completions saving developers time from repetitive tasks, routine lookups, and forgotten implementations.
+
+Inline completions are helpful but far from autonomous, requiring manual developer intervention and revision.
+
+Projects like Smol\cite{Osika2023Current}, AutoGPT\cite{Ortiz2023What}, and BabyAGI\cite{Parthasarathy2023Meet} aim to perform tasks autonomously by making language models reason and evaluate themselves. However, projects like AutoGPT and BabyAGI are general in project scope, leading to a jack-of-all-trades issue.
+
+In contrast, Smol is simple though it lacks capability and requires much human intervention.
+
 \bibliography{whitepaper}
 \end{document}
