@@ -71,5 +71,32 @@ The system must be capable of doing most software development tasks, such as man
 \subsubsection{Business Requirements}
 Solus must be versatile, profitable, and sustainable. By making agents customizable components with a clear separation of concerns, we can give Solus a clear path of expansion to other applications in the generative AI space. By operating on a cloud model, we can stay profitable on a low operating margin minimizing costs for us and our customers. To make Solus sustainable, we plan on creating a plugin ecosystem for optimized agent types for specific tasks and technologies. These developer ecosystems give Solus an economic moat over other initiatives. We also plan on building Solus to be open-source to ensure the most significant impact on the developer community. Open source allows us to create an ecosystem around our technology while maintaining profit and advantage due to enterprise trust in our platform.
 
+\section{System Architecture}
+\subsection{Components}
+\begin{figure*}[t]
+  \centering
+  \includegraphics[width=\textwidth]{figures/components.pdf}
+  \caption{The system comprises a control plane, a service mesh, and a resource layer. The \textbf{control plane} orchestrates agents and manages resources. The \textbf{agents} are responsible for doing the generation, acting on different resources. \textbf{Resources} provide an interface for agents to interact with their environment, such as the filesystem and the internet, to get context and complete tasks.}
+  \label{fig:components}
+\end{figure*}
+As shown in Figure~\ref{fig:components}, the Solus system comprises three primary components:
+\begin{enumerate}
+  \item \textbf{Control Plane}: The control plane orchestrates agents and manages resources. It also provides an entry point for users to interact with the system and monitor operations. Agents and Resources beam all actions to the control plane, which analyzes them and decides how to proceed.
+  \item \textbf{Agents}: Agents act on resources and interact with each other to complete the task given by the user. Agents are customizable components with roles and a set of allowed operations. They communicate with each other to regulate each other. For example, a Project Management agent may help a Software Engineer agent to stay working on items relevant to the business concerns of the system. Agents are also responsible for self-regulation and monitoring their resource usage.
+  \item \textbf{Resources}: Agents interact with resources such as the filesystem, internet, and databases to complete tasks. Resources are abstracted away from agents, allowing us to optimize and shard them under the hood. Resources are also responsible for monitoring and reporting their usage to the control plane.
+\end{enumerate}
+The abstraction of agents and resources de-couples the generative process from the underlying infrastructure, allowing us to optimize and scale the system without affecting the generative process. It also provides room for expansion and customization, allowing us to create a plugin ecosystem for agent types and resource types.
+
+\subsection{Inter-Service Communication}
+\begin{figure}[t]
+  \centering
+  \includegraphics[width=\columnwidth]{figures/inter-service_interaction.pdf}
+  \caption{The services interact through a service mesh. Sidecars intercept and standardize services' communications and beam them to the control plane.}
+  \label{fig:inter-service_interaction}
+\end{figure}
+As shown in Figure~\ref{fig:inter-service_interaction}, the services interact through a service mesh. Sidecars intercept and standardize services' communications and beam them to the control plane. The control plane keeps logs of all system activity, intervening when needed or requested by the user. The other components of the system regulate their communications and complete actions independently. A service mesh allows agents and resources to regulate their own interactions while keeping a centralized log of all activity in the control plane, allowing us to monitor and regulate the system while abstracting away the underlying infrastructure from the agents.
+
+The service mesh design pattern was initially used to manage microservices in a cloud-native environment due to its de-coupling of the network layer from the application layer\cite{LiService}. Due to the scale and compute requirements of competent language models\cite{Touvron2023LLaMA}, we must run agents on separate machines. A service mesh allows us to scale the system horizontally without affecting the generative process.
+
 \bibliography{whitepaper}
 \end{document}
