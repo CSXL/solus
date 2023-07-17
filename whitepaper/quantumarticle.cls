@@ -335,8 +335,8 @@ class for Quantum - the open journal for quantum science (https://quantum-journa
 		}
 	}
 	\RequirePackage{xcolor}
-	\definecolor{quantumviolet}{HTML}{53257F} %Quantum violet
-	\definecolor{quantumgray}{HTML}{555555} %Quantum gray
+	\definecolor{quantumviolet}{HTML}{4E0069} %Quantum violet
+	\definecolor{quantumgray}{HTML}{333333} %Quantum gray
 }
 
 \RequirePackage{ltxcmds}
@@ -1013,14 +1013,14 @@ class for Quantum - the open journal for quantum science (https://quantum-journa
 	{%
 			\iftoggle{@unpublished}%
 			{%
-				\@printtitletextwithappropriatefontsize%
+			\@printtitletextwithappropriatefontsize%
 			}%
 			{%
 				\edef\@titleexpanded{\detokenize\expandafter{\@title}}%
 				\iftoggle{@xstring}%
 					{\saveexploremode\exploregroups\StrSubstitute{\@titleexpanded}{ }{\%20}[\@titleforurl]\restoreexploremode}%
 					{\gdef\@titleforurl{\@titleexpanded}}%
-				\href{https://quantum-journal.org/?s=\@titleforurl\&reason=title-click}{%
+				\href{https://csxlabs.org}{%
 						\color{quantumviolet}{%
                                                   \@printtitletextwithappropriatefontsize\unskip%
 						}%
