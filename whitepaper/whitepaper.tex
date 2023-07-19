@@ -98,5 +98,13 @@ As shown in Figure~\ref{fig:inter-service_interaction}, the services interact th
 
 The service mesh design pattern was initially used to manage microservices in a cloud-native environment due to its de-coupling of the network layer from the application layer\cite{LiService}. Due to the scale and compute requirements of competent language models\cite{Touvron2023LLaMA}, we must run agents on separate machines. A service mesh allows us to scale the system horizontally without affecting the generative process.
 
+\subsection{Agents}
+\begin{figure*}[t]
+  \centering
+  \includegraphics[width=\textwidth]{figures/agent.pdf}
+  \caption{The services interact through a service mesh. Sidecars intercept and standardize services' communications and beam them to the control plane.}
+  \label{fig:agent}
+\end{figure*}
+
 \bibliography{whitepaper}
 \end{document}
