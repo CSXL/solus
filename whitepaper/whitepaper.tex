@@ -94,7 +94,7 @@ The abstraction of agents and resources de-couples the generative process from t
   \caption{The services interact through a service mesh. Sidecars intercept and standardize services' communications and beam them to the control plane.}
   \label{fig:inter-service_interaction}
 \end{figure}
-As shown in Figure~\ref{fig:inter-service_interaction}, the services interact through a service mesh. Sidecars intercept and standardize services' communications and beam them to the control plane. The control plane keeps logs of all system activity, intervening when needed or requested by the user. The other components of the system regulate their communications and complete actions independently. A service mesh allows agents and resources to regulate their own interactions while keeping a centralized log of all activity in the control plane, allowing us to monitor and regulate the system while abstracting away the underlying infrastructure from the agents.
+As shown in Figure~\ref{fig:inter-service_interaction}, the services interact through a service mesh. Sidecars intercept and standardize services' communications and beam them to the control plane. The control plane keeps logs of all system activity, intervening when needed or requested by the user. The other components of the system regulate their communications and complete actions independently. A service mesh allows agents and resources to handle their interactions while keeping a centralized log of all activity in the control plane. It will enable us to monitor and regulate the system while abstracting away the underlying infrastructure from the agents.
 
 The service mesh design pattern was initially used to manage microservices in a cloud-native environment due to its de-coupling of the network layer from the application layer\cite{LiService}. Due to the scale and compute requirements of competent language models\cite{Touvron2023LLaMA}, we must run agents on separate machines. A service mesh allows us to scale the system horizontally without affecting the generative process.
 
@@ -102,9 +102,8 @@ The service mesh design pattern was initially used to manage microservices in a 
 \begin{figure*}[t]
   \centering
   \includegraphics[width=\textwidth]{figures/agent.pdf}
-  \caption{The services interact through a service mesh. Sidecars intercept and standardize services' communications and beam them to the control plane.}
+  \caption{Agents represent the people in a software team. They act on resources and interact with each other to complete the task given by the user. They use two language models, a deliberator and an executor. The \textbf{deliberator} conducts unstructured reasoning about the current task, forming a critical chain of thinking and action. The \textbf{executor} takes the reasoning from the deliberator and converts it to commands according to a structured specification provided by the Agent's context. The \textbf{interpreter} serializes and parses the output from the executor, forming a set of requests to send to the manager. The \textbf{manager} manages the lifecycle of the agent's generations and updates the local context. It takes commands from the interpreter to send through the sidecar. As described in Figure~\ref{fig:inter-service_interaction}, the \textbf{sidecar} manages all inbound and outbound requests between agents, beaming them to the control plane for processing and delegating them to the manager.}
   \label{fig:agent}
 \end{figure*}
-
 \bibliography{whitepaper}
 \end{document}
