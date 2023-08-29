@@ -1020,11 +1020,11 @@ class for Quantum - the open journal for quantum science (https://quantum-journa
 				\iftoggle{@xstring}%
 					{\saveexploremode\exploregroups\StrSubstitute{\@titleexpanded}{ }{\%20}[\@titleforurl]\restoreexploremode}%
 					{\gdef\@titleforurl{\@titleexpanded}}%
-				\href{https://csxlabs.org}{%
+				%\href{https://csxlabs.org}{%
 						\color{quantumviolet}{%
                                                   \@printtitletextwithappropriatefontsize\unskip%
 						}%
-                                              }%
+                                             % }%
 			}%
 		}%
 }
