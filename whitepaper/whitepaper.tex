@@ -24,7 +24,7 @@
 \maketitle
 
 \begin{abstract}
-  TODO: Fill in abstract.
+  This paper presents Solus, a proposed end-to-end AI software development solution. It examines the rapid advancement of the generative AI space and identifies a gap in the current ecosystem: while existing tools such as GitHub's Copilot, Replit's Ghostwriter, and Amazon's Codewhisperer offer inline code completions to aid developers, there is no comprehensive autonomous software development solution. Furthermore, these systems often require manual intervention and revision. The Solus system aims to solve these issues by utilizing self-critical, multi-role AI agents to undertake all aspects of software development, including managing dependencies, refactoring, debugging, and generating business logic. It also proposes a robust, secure, and scalable approach that is capable of handling enterprise-level projects, with transparency and traceability of operations. The paper delves into the system architecture, discussing key components such as a control plane, agents, and resources. It makes a case for the unique design of Solus, which allows for scalability, customization, and optimization of the generative process by compartmentalizing agents and abstracting resources.
 \end{abstract}
 \section{Introduction}
 \subsection{Market Background}
@@ -130,5 +130,10 @@ The resources are abstracted from the agents, allowing us to implement effective
 As shown in Figure~\ref{fig:control_plane}, the control plane contains a centralized control point and information store of the system. As every action beams to the control plane, it can monitor and regulate the system without navigating and routing requests between agents and resources. Using a centralized information store also allows us to analyze the operation's state, providing aggregate metrics and insights into the system's operation and granular metrics and insights into individual agents and resources. The idea of using a centralized log to analyze the operation's state is similar to Apache Kafka\cite{kreps2011kafka}, which uses a centralized log as an event-driven data store for real-time data processing.
 
 The control plane also contains a management API for provisioning resources and agents, managing service discovery, and regulating service usage and costs.
+
+\section{Conclusion}
+
+The Solus system utilizes the wide-reaching potential of generative AI to revolutionize the field of software development. Creating an autonomous end-to-end AI software development solution expands the functions of current AI developers from inline completion methods to fully-fledged, autonomous programming processes. Employing a multi-agent system ensures that software development's traditional compartmentalization is maintained, providing targeted solutions for each aspect of the development cycle. Furthermore, its service mesh, compartmentalized agents, and abstracted resources allow optimization, scalability, and security to be maintained, letting Solus easily handle enterprise-scale projects. The business model balances profitability with creating a thriving open-source developer ecosystem. This development represents a significant leap forward in the evolution of software development, wholeheartedly embracing the era of AI.
+
 \bibliography{whitepaper}
 \end{document}
