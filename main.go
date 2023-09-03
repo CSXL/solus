@@ -1,7 +1,9 @@
 package main
 
-import "github.com/CSXL/solus/cmd"
+import (
+	"fmt"
+)
 
 func main() {
-	cmd.Execute()
+	fmt.Println("Hello, World!")
 }

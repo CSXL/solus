@@ -48,7 +48,7 @@ test:
 
 lint:
 	@echo "Linting..."
-	@trunk fmt
+	@./trunk fmt
 	@echo "Done."
 
 clean:
