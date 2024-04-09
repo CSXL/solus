@@ -4,6 +4,7 @@
 *.dll
 *.so
 *.dylib
+__pycache__/
 
 # Go Debugging
 __debug_bin
